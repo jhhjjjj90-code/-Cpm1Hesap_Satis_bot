@@ -19,7 +19,7 @@ def home():
 
 
 def run_web():
-  port = int(os.environ.get("PORT", 10000))
+  port = int(os.environ.get("PORT", 8080))
   app.run(host="0.0.0.0", port=port)
 
 
@@ -151,8 +151,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 def main():
- BOT_TOKEN = "8962445060:AAEatnjtKUW66d--dFVdjgGnRqLMN_P7o44"
-    
+  BOT_TOKEN = "8962445060:AAEatnjtKUW66d--dFVdjgGnRqLMN_P7o44"
 
   application = ApplicationBuilder().token(BOT_TOKEN).build()
 
