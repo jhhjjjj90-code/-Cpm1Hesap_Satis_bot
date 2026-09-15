@@ -15,7 +15,7 @@ app = Flask(__name__)
 
 @app.route("/")
 def home():
-  return "Cpm1 Hesap Satis ve Odul Botu Aktif! 🚀"
+  return "Cpm1 Hesap Satis ve Odul Botu Aktif ve Calisiyor! 🚀"
 
 
 def run_web():
@@ -23,8 +23,7 @@ def run_web():
   app.run(host="0.0.0.0", port=port)
 
 
-# Basit veri saklama (Kullanıcı verileri ve günlük ödüller için)
-KULLANICILAR = {}  # {user_id: {"bakiye": 0.0, "yildiz": 0, "son_giris": None, "gun_serisi": 0}}
+KULLANICILAR = {}
 
 
 def stok_oku():
@@ -43,13 +42,11 @@ def stok_dusur_ve_ver():
   if not stoklar:
     return None
   verilecek_hesap = stoklar[0]
-  # Kalanları tekrar dosyaya yaz
   with open("stok.txt", "w", encoding="utf-8") as f:
     f.write("\n".join(stoklar[1:]) + "\n")
   return verilecek_hesap
 
 
-# --- BOT KOMUTLARI VE MENÜLER ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
   user_id = update.effective_user.id
   if user_id not in KULLANICILAR:
@@ -91,7 +88,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     }
   user_data = KULLANICILAR[user_id]
 
-  # 1. HESAP SATIN ALMA
   if query.data == "hesap_al":
     stoklar = stok_oku()
     if not stoklar:
@@ -111,7 +107,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
       await query.edit_message_text("❌ Bir hata oluştu, stok bulunamadı.")
 
-  # 2. GÜNLÜK ÖDÜL (0.3'ten başlayarak artan sistem)
   elif query.data == "gunluk_odul":
     bugun = datetime.date.today()
     son_giris = user_data["son_giris"]
@@ -122,7 +117,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
       )
       return
 
-    # Seri kontrolü (Dün alındıysa seriyi artır, yoksa 1'e eşitle)
     if son_giris == bugun - datetime.timedelta(days=1):
       user_data["gun_serisi"] += 1
     else:
@@ -130,7 +124,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user_data["son_giris"] = bugun
 
-    # 0.3'ten başlayan ve seriye göre artan ödül hesabı (Örn: 1. gün 0.3, 2. gün 0.6 vb.)
     kazanc = round(0.3 * user_data["gun_serisi"], 2)
     user_data["bakiye"] += kazanc
 
@@ -141,7 +134,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"💳 Toplam Bakiye: {round(user_data['bakiye'], 2)}"
     )
 
-  # 3. PROFİLDESİ / BAKİYE
   elif query.data == "profil":
     await query.edit_message_text(
         f"📊 Profil Bilgilerin:\n\n"
@@ -150,7 +142,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🔥 Günlük Seri: {user_data['gun_serisi']} Gün"
     )
 
-  # 4. BEDAVA YILDIZ
   elif query.data == "bedava_yildiz":
     user_data["yildiz"] += 1
     await query.edit_message_text(
@@ -177,4 +168,4 @@ if __name__ == "__main__":
   t.start()
 
   main()
-        
+      
