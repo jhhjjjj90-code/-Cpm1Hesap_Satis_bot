@@ -55,7 +55,7 @@ def stok_dusur_ve_ver(adet=1):
   return verilecek_hesaplar
 
 
-# --- 6 HANELİ BENZERSİZ KOD ÜRETİCİ ---
+# --- 6 HANELİ BENZERSİZ KOD ÜRETİCİ (392.870+ Kişi Kapasiteli) ---
 def benzersiz_alti_hane_uret():
   karakterler = string.ascii_uppercase + string.digits  # A-Z, 0-9
   while True:
@@ -456,8 +456,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.edit_message_text(
         "👥 Arkadaşını Davet Et & carpipuan Kazan!\n\n"
         "Davet ettiğin her arkadaşın başına hesabına **+5 carpipuan**"
-        " eklenir.\n\n🔗 Kişisel Davet Linkin:\n`{ref_link}`",
-        reply_markup=reply_markup,
+        f" eklenir.\n\n🔗 Kişisel Davet Linkin:\n`{ref_link}`",
         parse_mode="Markdown",
     )
 
@@ -480,7 +479,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🏆 carpipuan: {user_data['carpipuan']}\n"
         f"📦 Mağaza Stok: {stok_adet} adet\n\n"
         f"🔗 Davet Linkin:\n`{ref_link}`",
-        reply_markup=reply_markup,
         parse_mode="Markdown",
     )
 
@@ -628,7 +626,7 @@ def main():
       MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler)
   )
 
-  print("Bot Hatasız Sürüm ile Başlatıldı...")
+  print("Bot Tamamen Güncellendi: 6 Haneli Kod & Düzeltilmiş Link Aktif...")
   application.run_polling()
 
 
@@ -638,4 +636,4 @@ if __name__ == "__main__":
   t.start()
 
   main()
-        
+      
