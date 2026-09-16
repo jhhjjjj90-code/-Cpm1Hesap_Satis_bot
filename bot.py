@@ -19,7 +19,7 @@ from telegram.ext import (
 app = Flask(__name__)
 
 ADMIN_IDS = [8520025523]
-BOT_USERNAME = "Cpm1hesap_bot"
+BOT_USERNAME = "Cpm1Hesap_Satis_bot"
 
 
 @app.route("/")
@@ -124,16 +124,6 @@ def get_ana_menu_keyboard(stok_adet, user_data=None):
         [InlineKeyboardButton(btn_text_4, callback_data="y_al")],
         [
             InlineKeyboardButton(
-                "📂 Es3 şifre oluştur", callback_data="es3_baslat"
-            )
-        ],
-        [
-            InlineKeyboardButton(
-                "🎟️ Promo Kod Kullan", callback_data="promo_kullan"
-            )
-        ],
-        [
-            InlineKeyboardButton(
                 "⭐ Yıldız ile carpipuan Al (Dengeli Paketler)",
                 callback_data="puan_menu",
             )
@@ -142,6 +132,11 @@ def get_ana_menu_keyboard(stok_adet, user_data=None):
             InlineKeyboardButton(
                 "🔐 Şifreyi Çöz & Ödülü Kap (3 Yıldız)",
                 callback_data="sifre_baslat",
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                "🎁 Bana Özel Promo Kodu Üret", callback_data="promo_kullan"
             )
         ],
         [
@@ -259,22 +254,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if query.data == "bos_bilgi":
         await query.answer()
         return
-
-    elif query.data == "es3_baslat":
-        await query.answer()
-        context.user_data["beklenen_islem"] = "es3_dosya"
-        keyboard = [[InlineKeyboardButton("🔙 İptal / Ana Menü", callback_data="ana_menu")]]
-        mesaj = (
-            "📁 Es3 Şifre Oluşturma Paneli\n\n"
-            "1️⃣ Adım 1: Lütfen cihazınızdaki .es3 uzantılı dosyanızı belge/dosya olarak sohbete yükleyin:"
-        )
-        try:
-            await query.edit_message_text(
-                mesaj,
-                reply_markup=InlineKeyboardMarkup(keyboard),
-            )
-        except Exception:
-            pass
 
     elif query.data == "promo_kullan":
         await query.answer()
@@ -567,4 +546,25 @@ async def pre_checkout_callback(update: Update, context: ContextTypes.DEFAULT_TY
 
 
 async def successful_payment_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    pa
+    payment = update.message.successful_payment
+    payload = payment.invoice_payload
+    user_id_str = str(update.effective_user.id)
+
+    if user_id_str not in KULLANICILAR:
+        KULLANICILAR[user_id_str] = {
+            "carpipuan": 0.0,
+            "son_gunluk": 0,
+            "hesap_adet": 1,
+            "yildiz_hesap_adet": 1,
+            "sifre_oyunu_kullanildi": True,
+            "beklenen_sifre": None,
+            "used_promos": [],
+        }
+    user_data = KULLANICILAR[user_id_str]
+    stok_adet = len(stok_oku())
+
+    if payload.startswith("hesap_coklu_"):
+        adet = int(payload.split("_")[2])
+        if stok_adet < adet:
+            await update.message.reply_text(
+                "Ödeme alındı fakat
