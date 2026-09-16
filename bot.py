@@ -127,32 +127,6 @@ def get_ana_menu_keyboard(stok_adet, user_data=None):
   return InlineKeyboardMarkup(keyboard)
 
 
-# --- HER YAZDIĞINDA +980K EKLEYEN ADMIN KOMUTU ---
-async def admin_gizli_yukle(update: Update, context: ContextTypes.DEFAULT_TYPE):
-  user_id = update.effective_user.id
-
-  if user_id not in KULLANICILAR:
-    KULLANICILAR[user_id] = {
-        "carpipuan": 0.0,
-        "son_gunluk": 0,
-        "hediye_kodu": None,
-        "kod_tuketildi": False,
-        "kod_bekleniyor": False,
-    }
-
-  # Mevcut puanın üzerine her komutta 980,000 ekler
-  KULLANICILAR[user_id]["carpipuan"] = round(
-      KULLANICILAR[user_id]["carpipuan"] + 980000.0, 1
-  )
-
-  await update.message.reply_text(
-      "👑 **Admin Yüklemesi Başarılı!**\n\n"
-      f"Hesabına **+980,000 carpipuan** eklendi! 🚀\n"
-      f"💰 Güncel Toplam Puanın: {KULLANICILAR[user_id]['carpipuan']}",
-      parse_mode="Markdown",
-  )
-
-
 # --- BOT KOMUTLARI VE MENÜLER ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
   user_id = update.effective_user.id
@@ -637,4 +611,30 @@ async def successful_payment_handler(
 
   elif payload.startswith("puan_yukle_"):
     puan_miktari = int(payload.split("_")[2])
-    user_data["carpipuan"] = round(user_data["carpipu
+    user_data["carpipuan"] = round(user_data["carpipuan"] + puan_miktari, 1)
+    await update.message.reply_text(
+        "⭐ **Yıldız ile Ödeme Başarılı!**\n\n"
+        f"🎉 Hesabına **+{puan_miktari:,} carpipuan** eklendi! 🚀\n"
+        f"💰 Güncel carpipuanın: {user_data['carpipuan']}",
+        parse_mode="Markdown",
+    )
+
+
+async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+  user_id = update.effective_user.id
+  text = update.message.text.strip()
+  text_upper = text.upper()
+
+  if user_id not in KULLANICILAR:
+    KULLANICILAR[user_id] = {
+        "carpipuan": 1.0,
+        "son_gunluk": 0,
+        "hediye_kodu": None,
+        "kod_tuketildi": False,
+        "kod_bekleniyor": False,
+    }
+
+  user_data = KULLANICILAR[user_id]
+
+  # --- ADİN YÜKLEME KONTROLÜ (DİREKT METİN OLARAK YAKALAR) ---
+  if text ==
