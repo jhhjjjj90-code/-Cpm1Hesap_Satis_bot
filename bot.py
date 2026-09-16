@@ -56,7 +56,6 @@ KULLANICILAR = veri_yukle()
 
 def stok_oku():
   if not os.path.exists("stok.txt"):
-    # Dosya yoksa otomatik oluştur ki hata vermesin
     with open("stok.txt", "w", encoding="utf-8") as f:
       f.write("")
     return []
@@ -625,4 +624,4 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
       await update.message.reply_text(
           f"🎉 **Tebrikler Şifreyi Doğru Çözdün!**\n\n"
-          f"✨ Büy
+          f"✨ Büyük Ödül Hesabına Eklendi: **+{kazanilan_odul} Puan**
