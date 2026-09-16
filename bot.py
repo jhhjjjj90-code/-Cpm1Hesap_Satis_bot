@@ -627,7 +627,25 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
   text = update.message.text.strip()
 
   if (
-      user_id in ADMIN_IDS
+         if user_id in ADMIN_IDS and context.user_data.get("beklenen_admin_islem") == "duyuru":
+        context.user_data["beklenen_admin_islem"] = None
+        for uid in KULLANICILAR.keys():
+            try:
+                await context.bot.send_message(chat_id=int(uid), text=f"📢 **DUYURU:**\n\n{text}", parse_mode="Markdown")
+            except Exception:
+                pass
+        await update.message.reply_text("✅ Duyuru gönderildi!")
+        return
+
+    if user_id_str in KULLANICILAR:
+        user_data = KULLANICILAR[user_id_str]
+        if user_data.get("beklenen_sifre") and text == user_data["beklenen_sifre"]:
+            kazanilan_odul = random.choice([10, 30, 50, 100])
+            user_data["carpipuan"] = round(user_data["carpipuan"] + kazanilan_odul, 1)
+            user_data["beklenen_sifre"] = None
+            veri_kaydet()
+            await update.message.reply_text(f"🎉 Tebrikler! Ödül Eklendi: **+{kazanilan_odul} Puan**", parse_mode="Markdown")
+            
       and context.user_data.get("beklenen_admin_islem") == "duyuru"
   ):
     context.user_data["beklenen_admin_islem"] = None
