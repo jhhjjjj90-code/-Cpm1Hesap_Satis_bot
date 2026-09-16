@@ -577,4 +577,4 @@ async def successful_payment_callback(update: Update, context: ContextTypes.DEFA
         adet = int(payload.split("_")[2])
         if stok_adet < adet:
             await update.message.reply_text(
-                "❌ Ödeme alındı fakat stok yetersiz! Adminle iletişime 
+                "Odeme alindi fakat stok yetersiz. Adminle iletisime ge
