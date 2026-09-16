@@ -39,19 +39,39 @@ def veri_yukle():
       with open(DB_FILE, "r", encoding="utf-8") as f:
         return json.load(f)
     except Exception:
-      return {}
-  return {}
+      return {
+          "users": {},
+          "giveaway": {"active": False, "participants": []},
+          "waitlist": [],
+          "happy_hour": {"active": False},
+      }
+  return {
+      "users": {},
+      "giveaway": {"active": False, "participants": []},
+      "waitlist": [],
+      "happy_hour": {"active": False},
+  }
 
 
 def veri_kaydet():
   try:
     with open(DB_FILE, "w", encoding="utf-8") as f:
-      json.dump(KULLANICILAR, f, ensure_ascii=False, indent=4)
+      json.dump(DB_DATA, f, ensure_ascii=False, indent=4)
   except Exception:
     pass
 
 
-KULLANICILAR = veri_yukle()
+DB_DATA = veri_yukle()
+# Eğer veritabanı eski yapıdaysa (sadece kullanıcı sözlüğü ise) dönüştürelim
+if not isinstance(DB_DATA, dict) or "users" not in DB_DATA:
+  DB_DATA = {
+      "users": DB_DATA if isinstance(DB_DATA, dict) else {},
+      "giveaway": {"active": False, "participants": []},
+      "waitlist": [],
+      "happy_hour": {"active": False},
+  }
+
+KULLANICILAR = DB_DATA["users"]
 
 
 def stok_oku():
@@ -74,21 +94,37 @@ def stok_dusur_ve_ver(adet=1):
   verilecek_hesaplar = stoklar[:adet]
   with open("stok.txt", "w", encoding="utf-8") as f:
     f.write("\n".join(stoklar[adet:]) + "\n")
+  
+  # Stok düşünce waitlist'tekilere otomatik haber verme tetikleyicisi
+  if len(stoklar) - adet == 0:
+    pass
   return verilecek_hesaplar
+
+
+# Karaborsa / Dinamik Fiyatlandırma Mekanizması
+def get_dynamic_price(base_price: int) -> int:
+  stock = stok_oku()
+  # Stok 5'in altına düşerse fiyat otomatik %20 artar
+  if len(stock) < 5:
+    return int(base_price * 1.2)
+  return base_price
 
 
 def get_ana_menu_keyboard(stok_adet, user_data=None):
   secilen_adet = user_data.get("hesap_adet", 1) if user_data else 1
-  toplam_puan = secilen_adet * 15
+  base_puan = secilen_adet * 15
+  toplam_puan = get_dynamic_price(base_puan)
 
   yildiz_adet = user_data.get("yildiz_hesap_adet", 1) if user_data else 1
   toplam_yildiz = yildiz_adet * 15
+
+  karaborsa_uyari = " (🔥 Karaborsa!)" if stok_adet < 5 and stok_adet > 0 else ""
 
   keyboard = [
       [
           InlineKeyboardButton("➖", callback_data="h_az"),
           InlineKeyboardButton(
-              f"📦 {secilen_adet} Adet Hesap ({toplam_puan} carpipuan)",
+              f"📦 {secilen_adet} Adet Hesap ({toplam_puan} Puan){karaborsa_uyari}",
               callback_data="bos_bilgi",
           ),
           InlineKeyboardButton("➕", callback_data="h_art"),
@@ -117,6 +153,11 @@ def get_ana_menu_keyboard(stok_adet, user_data=None):
           InlineKeyboardButton(
               "⭐ Yıldız ile carpipuan Al (Dengeli Paketler)",
               callback_data="puan_menu",
+          )
+      ],
+      [
+          InlineKeyboardButton(
+              "🎁 Otomatik Çekilişe Katıl", callback_data="join_giveaway"
           )
       ],
   ]
@@ -162,6 +203,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "promo_alindi": False,
         "sifre_oyunu_kullanildi": False,
         "beklenen_sifre": None,
+        "spent": 0,
     }
     if args and args[0].startswith("ref_"):
       try:
@@ -198,7 +240,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
   context.bot_data["username"] = bot_info.username
 
   await update.message.reply_text(
-      "🚀 CPM1 Hesap Mağazasına Hoş Geldin!\n\n"
+      "🚀 CPM1 Hesap Mağazasına & Otomasyon İmparatorluğuna Hoş Geldin!\n\n"
       f"📦 Güncel Stok: {stok_adet} adet hesap\n"
       f"🏆 carpipuanın: +{user_data['carpipuan']} carpipuan\n\n"
       "Aşağıdaki menüden işlem seçebilirsin:",
@@ -223,6 +265,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "promo_alindi": False,
         "sifre_oyunu_kullanildi": False,
         "beklenen_sifre": None,
+        "spent": 0,
     }
     veri_kaydet()
 
@@ -233,9 +276,22 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     return
 
+  # Otomatik Çekilişe Katılma
+  elif query.data == "join_giveaway":
+    if DB_DATA["giveaway"].get("active", False):
+      if user_id_str not in DB_DATA["giveaway"]["participants"]:
+        DB_DATA["giveaway"]["participants"].append(user_id_str)
+        veri_kaydet()
+        await query.answer("✅ Çekilişe başarıyla katıldın!", show_alert=True)
+      else:
+        await query.answer("⚠️ Zaten bu çekilişe katılmış durumdasın.", show_alert=True)
+    else:
+      await query.answer("❌ Şu anda aktif bir çekiliş bulunmuyor.", show_alert=True)
+    return
+
   elif query.data == "h_art":
     await query.answer()
-    if user_data["hesap_adet"] < max(1, stok_adet):
+    if user_data["hesap_adet"] < max(1, stok_adet if stok_adet > 0 else 1):
       user_data["hesap_adet"] += 1
       veri_kaydet()
     try:
@@ -259,7 +315,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
   elif query.data == "y_art":
     await query.answer()
-    if user_data["yildiz_hesap_adet"] < max(1, stok_adet):
+    if user_data["yildiz_hesap_adet"] < max(1, stok_adet if stok_adet > 0 else 1):
       user_data["yildiz_hesap_adet"] += 1
       veri_kaydet()
     try:
@@ -283,7 +339,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
   elif query.data == "hp_al":
     adet = user_data.get("hesap_adet", 1)
-    gerekli_puan = adet * 15.0
+    base_puan = adet * 15.0
+    gerekli_puan = get_dynamic_price(int(base_puan))
 
     if user_data["carpipuan"] < gerekli_puan:
       await query.answer(
@@ -293,19 +350,34 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
       return
 
     if stok_adet < adet:
-      await query.answer("❌ Stokta o kadar hesap yok reis!", show_alert=True)
+      # Stok Yok -> Otomatik Bekleme Listesi (Waitlist)
+      if user_id_str not in DB_DATA["waitlist"]:
+        DB_DATA["waitlist"].append(user_id_str)
+        veri_kaydet()
+      await query.answer(
+          "⚠️ Stoklar tükenmiştir! Otomatik bekleme listesine (Waitlist) eklendin. Stok gelince haber verilecek.",
+          show_alert=True,
+      )
       return
 
     verilenler = stok_dusur_ve_ver(adet)
     if verilenler:
       await query.answer()
-      user_data["carpipuan"] = round(user_data["carpipuan"] - gerekli_puan, 1)
+      
+      # Cashback (%10 Nakit İade) Hesaplama
+      cashback = int(gerekli_puan * 0.10)
+      
+      user_data["carpipuan"] = round(user_data["carpipuan"] - gerekli_puan + cashback, 1)
+      user_data["spent"] = user_data.get("spent", 0) + int(gerekli_puan)
       veri_kaydet()
+      
       hesaplar_metni = "\n".join([f"`{h}`" for h in verilenler])
       keyboard = [[InlineKeyboardButton("🔙 Ana Menü", callback_data="ana_menu")]]
       try:
         await query.edit_message_text(
-            f"✅ {adet} Adet Hesap Başarıyla Verildi! (-{gerekli_puan} Puan)\n\n🔑 Bilgiler:\n{hesaplar_metni}\n\n💰 Kalan Puanın: +{user_data['carpipuan']}",
+            f"✅ {adet} Adet Hesap Başarıyla Verildi! (-{gerekli_puan} Puan)\n\n"
+            f"✨ **Cashback İadesi:** +{cashback} Puan hesabına geri yüklendi!\n\n"
+            f"🔑 Bilgiler:\n{hesaplar_metni}\n\n💰 Kalan Puanın: +{user_data['carpipuan']}",
             reply_markup=InlineKeyboardMarkup(keyboard),
             parse_mode="Markdown",
         )
@@ -550,76 +622,4 @@ async def successful_payment_callback(
     KULLANICILAR[user_id_str] = {
         "carpipuan": 0.0,
         "son_gunluk": 0,
-        "davet_edildi": False,
-        "davet_sayisi": 0,
-        "hesap_adet": 1,
-        "yildiz_hesap_adet": 1,
-        "promo_alindi": False,
-        "sifre_oyunu_kullanildi": True,
-        "beklenen_sifre": None,
-    }
-  user_data = KULLANICILAR[user_id_str]
-  stok_adet = len(stok_oku())
-
-  if payload.startswith("hesap_coklu_"):
-    adet = int(payload.split("_")[2])
-    if stok_adet < adet:
-      await update.message.reply_text(
-          "❌ Ödeme alındı fakat stokta o kadar hesap kalmış! Lütfen adminle"
-          " iletişime geç."
-      )
-      return
-    verilenler = stok_dusur_ve_ver(adet)
-    if verilenler:
-      hesaplar_metni = "\n".join([f"`{h}`" for h in verilenler])
-      await update.message.reply_text(
-          f"⭐ **Yıldız ile {adet} Adet Hesap Başarıyla Alındı!**\n\n🔑 Bilgiler:\n{hesaplar_metni}",
-          parse_mode="Markdown",
-      )
-
-  elif payload.startswith("puan_yukle_"):
-    parcalar = payload.split("_")
-    yuklenen_puan = int(parcalar[3])
-
-    user_data["carpipuan"] = round(user_data["carpipuan"] + yuklenen_puan, 1)
-    veri_kaydet()
-    await update.message.reply_text(
-        f"⭐ **Carpipuan Başarıyla Yüklendi!**\n\n✨ Hesabına **+{yuklenen_puan} Puan** eklendi! 🚀\n💰 Güncel Puanın: +{user_data['carpipuan']}",
-        parse_mode="Markdown",
-    )
-
-  elif payload == "sifre_oyunu_3_yildiz":
-    gizli_sifre = "".join(random.choices(string.digits, k=6))
-    user_data["beklenen_sifre"] = gizli_sifre
-    veri_kaydet()
-
-    await update.message.reply_text(
-        "🔐 **Ödeme Onaylandı! Şifre Çözme Başladı**\n\n"
-        f"🔑 Size Özel Üretilen Şifre: `{gizli_sifre}`\n\n"
-        "👉 Ödülü (10, 30, 50 veya 100 Puan) kapmak için **bu 6 haneli şifreyi sohbete mesaj olarak yazıp gönder!**",
-        parse_mode="Markdown",
-    )
-
-
-async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-  user_id_str = str(update.effective_user.id)
-  text = update.message.text.strip()
-
-  if user_id_str in KULLANICILAR:
-    user_data = KULLANICILAR[user_id_str]
-    if user_data.get("beklenen_sifre") and text == user_data["beklenen_sifre"]:
-      kazanilan_odul = random.choice([10, 30, 50, 100])
-      user_data["carpipuan"] = round(
-          user_data["carpipuan"] + kazanilan_odul, 1
-      )
-      user_data["beklenen_sifre"] = None
-      veri_kaydet()
-
-      await update.message.reply_text(
-          f"🎉 **Tebrikler Şifreyi Doğru Çözdün!**\n\n✨ Büyük Ödül Hesabına Eklendi: **+{kazanilan_odul} Puan** 🚀\n💰 Toplam Puanın: +{user_data['carpipuan']}",
-          parse_mode="Markdown",
-      )
-
-
-def main():
-  toke
+        
