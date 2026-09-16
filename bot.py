@@ -56,6 +56,9 @@ KULLANICILAR = veri_yukle()
 
 def stok_oku():
   if not os.path.exists("stok.txt"):
+    # Dosya yoksa otomatik oluştur ki hata vermesin
+    with open("stok.txt", "w", encoding="utf-8") as f:
+      f.write("")
     return []
   with open("stok.txt", "r", encoding="utf-8") as f:
     return [
@@ -147,7 +150,6 @@ def get_ana_menu_keyboard(stok_adet, user_data=None):
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
   user_id_str = str(update.effective_user.id)
-  user_id = update.effective_user.id
   args = context.args
 
   if user_id_str not in KULLANICILAR:
@@ -623,5 +625,4 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
       await update.message.reply_text(
           f"🎉 **Tebrikler Şifreyi Doğru Çözdün!**\n\n"
-          f"✨ Büyük Ödül Hesabına Eklendi: **+{kazanilan_odul} Puan** 🚀\n"
-          f"💰 Güncel Puanın:
+          f"✨ Büy
