@@ -153,7 +153,11 @@ def get_ana_menu_keyboard(stok_adet, user_data=None):
       ],
       [
           InlineKeyboardButton(
-              "⭐ Yıldız ile Al (" + str(toplam_yildiz) + " Yıldız)",
+              "⭐ "
+              + str(yildiz_adet)
+              + " VIP Hesap Al ("
+              + str(toplam_yildiz)
+              + " Yıldız)",
               callback_data="y_al",
           )
       ],
@@ -661,8 +665,4 @@ async def successful_payment_callback(
         "hesap_adet": 1,
         "yildiz_hesap_adet": 1,
         "promo_alindi": False,
-        "sifre_oyunu_kullanildi": True,
-        "beklenen_sifre": None,
-        "spent": 0,
-    }
-  user
+        "sifre_oyunu_kul
