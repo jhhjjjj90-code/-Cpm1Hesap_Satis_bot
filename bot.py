@@ -631,4 +631,4 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
       mesaj = f"🎉 Tebrikler! Ödül Eklendi: **+{kazanilan_odul} Puan**"
       await update.message.reply_text(
-          
+    
