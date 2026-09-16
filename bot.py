@@ -18,6 +18,9 @@ from telegram.ext import (
 
 app = Flask(__name__)
 
+# Senin Telegram ID'n ile güvenli bir şekilde güncellendi
+ADMIN_IDS = [8520025523]
+
 
 @app.route("/")
 def home():
@@ -43,13 +46,13 @@ def veri_yukle():
           "users": {},
           "giveaway": {"active": False, "participants": []},
           "waitlist": [],
-          "happy_hour": {"active": False},
+          "banned": [],
       }
   return {
       "users": {},
       "giveaway": {"active": False, "participants": []},
       "waitlist": [],
-      "happy_hour": {"active": False},
+      "banned": [],
   }
 
 
@@ -67,7 +70,7 @@ if not isinstance(DB_DATA, dict) or "users" not in DB_DATA:
       "users": DB_DATA if isinstance(DB_DATA, dict) else {},
       "giveaway": {"active": False, "participants": []},
       "waitlist": [],
-      "happy_hour": {"active": False},
+      "banned": [],
   }
 
 KULLANICILAR = DB_DATA["users"]
@@ -182,7 +185,13 @@ def get_ana_menu_keyboard(stok_adet, user_data=None):
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-  user_id_str = str(update.effective_user.id)
+  user_id = update.effective_user.id
+  user_id_str = str(user_id)
+
+  if user_id_str in DB_DATA.get("banned", []):
+    await update.message.reply_text("❌ Bu botu kullanmanız yasaklanmıştır.")
+    return
+
   args = context.args
 
   if user_id_str not in KULLANICILAR:
@@ -242,10 +251,39 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
   )
 
 
+# --- ADMIN PANELİ KOMUTU ---
+async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+  user_id = update.effective_user.id
+  if user_id not in ADMIN_IDS:
+    await update.message.reply_text("❌ Bu komutu kullanmaya yetkin yok reis!")
+    return
+
+  stok_adet = len(stok_oku())
+  toplam_uye = len(KULLANICILAR)
+
+  keyboard = [
+      [InlineKeyboardButton("📦 Stok Durumu & Bilgi", callback_data="admin_stok")],
+      [InlineKeyboardButton("📢 Tüm Kullanıcılara Duyuru At", callback_data="admin_duyuru")],
+      [InlineKeyboardButton("🔙 Ana Menüye Dön", callback_data="ana_menu")],
+  ]
+  await update.message.reply_text(
+      "👑 **Admin Paneline Hoş Geldin Reis!**\n\n"
+      f"👥 Toplam Üye: `{toplam_uye}`\n"
+      f"📦 Güncel Stok: `{stok_adet}`\n\n"
+      "Yapmak istediğin işlemi seç:",
+      reply_markup=InlineKeyboardMarkup(keyboard),
+      parse_mode="Markdown",
+  )
+
+
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
   query = update.callback_query
   user_id_str = str(query.from_user.id)
   user_id = query.from_user.id
+
+  if user_id_str in DB_DATA.get("banned", []):
+    await query.answer("❌ Engellendiğiniz için işlem yapamazsınız.", show_alert=True)
+    return
 
   if user_id_str not in KULLANICILAR:
     KULLANICILAR[user_id_str] = {
@@ -268,6 +306,28 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
   if query.data == "bos_bilgi":
     await query.answer()
     return
+
+  elif query.data == "admin_stok":
+    if user_id not in ADMIN_IDS:
+      await query.answer("Yetkin yok!", show_alert=True)
+      return
+    await query.answer()
+    await query.edit_message_text(
+        f"📦 **Stok Bilgisi:**\nŞu anda stokta toplam **{stok_adet}** adet hesap bulunmaktadır.\n\nStok eklemek için sunucuya `stok.txt` dosyası üzerinden alt alta `kadi:sifre` formatında ekleme yapabilirsin.",
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Admin Menü", callback_data="ana_menu")]]),
+        parse_mode="Markdown",
+    )
+
+  elif query.data == "admin_duyuru":
+    if user_id not in ADMIN_IDS:
+      await query.answer("Yetkin yok!", show_alert=True)
+      return
+    context.user_data["beklenen_admin_islem"] = "duyuru"
+    await query.answer()
+    await query.edit_message_text(
+        "📢 Lütfen kullanıcılara göndermek istediğiniz duyuru mesajını **sohbete yazı olarak gönderin:**",
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 İptal", callback_data="ana_menu")]]),
+    )
 
   elif query.data == "join_giveaway":
     if DB_DATA["giveaway"].get("active", False):
@@ -555,74 +615,4 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )[:10]
     metin = "🏆 **En İyi 10 Liderlik Tablosu**\n\n"
     for sira, (uid, udata) in enumerate(sirali, 1):
-      metin += f"{sira}. Kullanıcı: **+{udata['carpipuan']}** Puan\n"
-
-    keyboard = [[InlineKeyboardButton("🔙 Ana Menü", callback_data="ana_menu")]]
-    await query.edit_message_text(
-        metin, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown"
-    )
-
-  elif query.data == "profil":
-    await query.answer()
-    keyboard = [[InlineKeyboardButton("🔙 Ana Menü", callback_data="ana_menu")]]
-    davet_sayisi = user_data.get("davet_sayisi", 0)
-    await query.edit_message_text(
-        f"👤 **Profilin & Bilgilerin:**\n\n"
-        f"🆔 ID: `{user_id}`\n"
-        f"🏆 carpipuan: `+{user_data['carpipuan']}`\n"
-        f"👥 Davet Ettiğin Kişi: **{davet_sayisi}**\n"
-        f"📦 Mağaza Güncel Stok: `{stok_adet}`",
-        reply_markup=InlineKeyboardMarkup(keyboard),
-        parse_mode="Markdown",
-    )
-
-  elif query.data == "ana_menu":
-    await query.answer()
-    try:
-      await query.edit_message_text(
-          "🚀 CPM1 Hesap Mağazasına Hoş Geldin!\n\n"
-          f"📦 Güncel Stok: {stok_adet} adet hesap\n"
-          f"🏆 carpipuanın: +{user_data['carpipuan']} carpipuan\n\n"
-          "Aşağıdaki menüden işlem seçebilirsin:",
-          reply_markup=get_ana_menu_keyboard(stok_adet, user_data),
-          parse_mode="Markdown",
-      )
-    except Exception:
-      pass
-
-
-async def pre_checkout_callback(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-):
-  query = update.pre_checkout_query
-  await query.answer(ok=True)
-
-
-async def successful_payment_callback(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-):
-  payment = update.message.successful_payment
-  payload = payment.invoice_payload
-  user_id_str = str(update.effective_user.id)
-  user_id = update.effective_user.id
-
-  if user_id_str not in KULLANICILAR:
-    KULLANICILAR[user_id_str] = {
-        "carpipuan": 0.0,
-        "son_gunluk": 0,
-        "davet_edildi": False,
-        "davet_sayisi": 0,
-        "hesap_adet": 1,
-        "yildiz_hesap_adet": 1,
-        "promo_alindi": False,
-        "sifre_oyunu_kullanildi": True,
-        "beklenen_sifre": None,
-        "spent": 0,
-    }
-  user_data = KULLANICILAR[user_id_str]
-  stok_adet = len(stok_oku())
-
-  if payload.startswith("hesap_coklu_"):
-    adet = int(payload.split("_")[2])
-    if stok_adet < adet:
-      await update.messag
+      metin += f"{sira}. Kull
