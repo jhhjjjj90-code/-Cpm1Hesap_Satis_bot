@@ -646,4 +646,4 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
   if user_id_str in KULLANICILAR:
     user_data = KULLANICILAR[user_id_str]
     if user_data.get("beklenen_sifre") and text == user_data["beklenen_sifre"]:
-        
+    
