@@ -3,7 +3,7 @@ import random
 import threading
 import time
 from flask import Flask
-from telegram import LabeledPrice, Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice, Update
 from telegram.ext import (
     ApplicationBuilder,
     CallbackQueryHandler,
@@ -53,6 +53,50 @@ def stok_dusur_ve_ver(adet=1):
   return verilecek_hesaplar
 
 
+# --- ANA MENÜ FONKSİYONU ---
+def get_ana_menu_keyboard(stok_adet):
+  return InlineKeyboardMarkup([
+      [
+          InlineKeyboardButton(
+              "📦 Hesap Satın Al (15 carpipuan)", callback_data="hesap_al_puan"
+          )
+      ],
+      [
+          InlineKeyboardButton(
+              "⭐ Yıldız ile Hesap Al", callback_data="yildiz_hesap_menu_1"
+          )
+      ],
+      [
+          InlineKeyboardButton(
+              "⭐ Yıldız ile carpipuan Al (50 - 40K)",
+              callback_data="carpipuan_menu",
+          )
+      ],
+      [
+          InlineKeyboardButton(
+              "🎁 Promosyon Kodu Gir (0.3 - 2 Puan)",
+              callback_data="promo_gir_menu",
+          )
+      ],
+      [
+          InlineKeyboardButton(
+              "🎁 Günlük Ödül Al (0.3 - 2 Puan)", callback_data="gunluk_odul"
+          )
+      ],
+      [
+          InlineKeyboardButton(
+              "👥 Arkadaşını Davet Et (+5 carpipuan)",
+              callback_data="davet_et",
+          )
+      ],
+      [
+          InlineKeyboardButton(
+              "👤 Profilim & Sana Özel Kodum", callback_data="profil"
+          )
+      ],
+  ])
+
+
 # --- BOT KOMUTLARI VE MENÜLER ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
   user_id = update.effective_user.id
@@ -97,51 +141,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
   user_data = KULLANICILAR[user_id]
   user_data["kod_bekleniyor"] = False
 
-  from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-
-  keyboard = [
-      [
-          InlineKeyboardButton(
-              "📦 Hesap Satın Al (15 carpipuan)", callback_data="hesap_al_puan"
-          )
-      ],
-      [
-          InlineKeyboardButton(
-              "⭐ Gerçek Yıldız ile Hesap Al (100 Yıldız)",
-              callback_data="yildiz_hesap",
-          )
-      ],
-      [
-          InlineKeyboardButton(
-              "⭐ Gerçek Yıldız ile carpipuan Al (50 - 40K)",
-              callback_data="carpipuan_menu",
-          )
-      ],
-      [
-          InlineKeyboardButton(
-              "🎁 Promosyon Kodu Gir (0.3 - 2 Puan)",
-              callback_data="promo_gir_menu",
-          )
-      ],
-      [
-          InlineKeyboardButton(
-              "🎁 Günlük Ödül Al (+10 carpipuan)", callback_data="gunluk_odul"
-          )
-      ],
-      [
-          InlineKeyboardButton(
-              "👥 Arkadaşını Davet Et (+5 carpipuan)",
-              callback_data="davet_et",
-          )
-      ],
-      [
-          InlineKeyboardButton(
-              "👤 Profilim & Sana Özel Kodum", callback_data="profil"
-          )
-      ],
-  ]
-  reply_markup = InlineKeyboardMarkup(keyboard)
-
   await update.message.reply_text(
       "🚀 CPM1 Hesap Mağazasına Hoş Geldin!\n\n"
       f"📦 Güncel Stok: {stok_adet} adet hesap\n"
@@ -149,7 +148,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
       f"🎁 Size Özel Hediye Kodunuz: `{user_data['hediye_kodu']}`\n"
       "(15 carpipuan = 1 Ücretsiz Hesap)\n\n"
       "Aşağıdaki menüden işlem seçebilirsin:",
-      reply_markup=reply_markup,
+      reply_markup=get_ana_menu_keyboard(stok_adet),
       parse_mode="Markdown",
   )
 
@@ -169,8 +168,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
   user_data = KULLANICILAR[user_id]
   stok_adet = len(stok_oku())
   user_data["kod_bekleniyor"] = False
-
-  from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
   # 1. 15 CARPİPUAN İLE HESAP AL
   if query.data == "hesap_al_puan":
@@ -199,31 +196,74 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
       await query.edit_message_text("❌ Stok hatası oluştu.")
 
-  # 2. GERÇEK YILDIZ İLE DOĞRUDAN HESAP SATIN AL (TELEGRAM STARS INVOICE)
-  elif query.data == "yildiz_hesap":
-    if stok_adet < 1:
-      await query.edit_message_text("❌ Stokta hiç hesap kalmamış!")
+  # 2. YILDIZ İLE HESAP AL - ADET SEÇİM MENÜSÜ (+ VE -)
+  elif query.data.startswith("yildiz_hesap_menu_"):
+    adet = int(query.data.split("_")[3])
+    toplam_yildiz = adet * 15
+
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                "➖",
+                callback_data=(
+                    f"yildiz_hesap_menu_{max(1, adet - 1)}"
+                    if adet > 1
+                    else "ignore"
+                ),
+            ),
+            InlineKeyboardButton(
+                f"📦 {adet} Adet ({toplam_yildiz} ⭐)", callback_data="ignore"
+            ),
+            InlineKeyboardButton(
+                "➕", callback_data=f"yildiz_hesap_menu_{adet + 1}"
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                f"⭐ {toplam_yildiz} Yıldız ile Satın Al",
+                callback_data=f"yildiz_hesap_satin_al_{adet}",
+            )
+        ],
+        [InlineKeyboardButton("🔙 Ana Menüye Dön", callback_data="ana_menu")],
+    ]
+    await query.edit_message_text(
+        "⭐ **Yıldız ile Hesap Satın Al**\n\n"
+        f"• Tane Fiyatı: **15 ⭐**\n"
+        f"• Seçilen Adet: **{adet}**\n"
+        f"• Toplam Tutar: **{toplam_yildiz} ⭐**\n\n"
+        "İstediğin miktarı ➕ and ➖ butonlarıyla ayarlayabilirsin:",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+        parse_mode="Markdown",
+    )
+
+  elif query.data.startswith("yildiz_hesap_satin_al_"):
+    adet = int(query.data.split("_")[4])
+    toplam_yildiz = adet * 15
+
+    if stok_adet < adet:
+      await query.edit_message_text(
+          f"❌ Stokta yeterli hesap yok! (Mevcut stok: {stok_adet})"
+      )
       return
 
-    title = "CPM1 Hesap Satın Alımı"
-    description = "1 Adet CPM1 Oyuncu Hesabı (Gerçek Telegram Yıldızı ile)"
-    payload = "hesap_satin_al_payload"
-    currency = "XTR"  # Telegram Stars para birimi kodu
-    prices = [LabeledPrice("CPM1 Hesap", 100)]  # 100 Yıldız
+    title = f"{adet} Adet CPM1 Hesabı"
+    description = f"Toplam {adet} adet oyuncu hesabı ({toplam_yildiz} Yıldız)"
+    payload = f"hesap_satin_al_coklu_{adet}"
+    currency = "XTR"
+    prices = [LabeledPrice(f"{adet} Hesap", toplam_yildiz)]
 
     await context.bot.send_invoice(
         chat_id=user_id,
         title=title,
         description=description,
         payload=payload,
-        provider_token="",  # Telegram Stars için boş bırakılır
+        provider_token="",
         currency=currency,
         prices=prices,
     )
     await query.edit_message_text(
-        "⭐ Gerçek Telegram Yıldızı ile ödeme faturası oluşturuldu!"
-        " Lütfen yukarıdaki ödeme butonuna basarak 100 ⭐ ödemeyi"
-        " tamamla."
+        f"⭐ {adet} adet hesap için {toplam_yildiz} Yıldız faturası"
+        " oluşturuldu! Lütfen yukarıdaki ödeme butonundan işlemi tamamla."
     )
 
   # 3. CARPİPUAN PAKETLERİ MENÜSÜ
@@ -273,9 +313,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await query.edit_message_text(
-        "⭐ **Gerçek Telegram Yıldızı ile carpıpuan Satın Al**\n\n"
+        "⭐ **Yıldız ile carpıpuan Satın Al**\n\n"
         f"Mevcut carpipuanın: {user_data['carpipuan']} / 40,000\n\n"
-        "İstediğin paket için gerçek yıldız faturası oluştur:",
+        "İstediğin paket için yıldız faturası oluştur:",
         reply_markup=reply_markup,
         parse_mode="Markdown",
     )
@@ -302,9 +342,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
       return
 
     title = f"{puan_miktari:,} carpipuan Paketi"
-    description = (
-        f"Hesabına {puan_miktari:,} carpipuan yüklemesi (Telegram Yıldızı ile)"
-    )
+    description = f"Hesabına {puan_miktari:,} carpipuan yüklemesi"
     payload = f"puan_yukle_{puan_miktari}"
     currency = "XTR"
     prices = [LabeledPrice(f"{puan_miktari} Puan", gerekli_yildiz)]
@@ -339,7 +377,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown",
     )
 
-  # 5. GÜNLÜK ÖDÜL AL
+  # 5. GÜNLÜK ÖDÜL AL (0.3 - 2 PUAN ARASI)
   elif query.data == "gunluk_odul":
     simdiki_zaman = time.time()
     gecen_sure = simdiki_zaman - user_data["son_gunluk"]
@@ -357,7 +395,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
       return
 
     user_data["son_gunluk"] = simdiki_zaman
-    user_data["carpipuan"] = min(40000.0, user_data["carpipuan"] + 10.0)
+    mumkun_puanlar = [0.3, 0.5, 0.7, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0]
+    kazanilan_gunluk = random.choice(mumkun_puanlar)
+    user_data["carpipuan"] = min(40000.0, user_data["carpipuan"] + kazanilan_gunluk)
 
     keyboard = [
         [InlineKeyboardButton("🔙 Ana Menüye Dön", callback_data="ana_menu")]
@@ -365,7 +405,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
     await query.edit_message_text(
         "🎁 Günlük Ödül Başarıyla Toplandı!\n\n"
-        "Hesabına **+10 carpipuan** eklendi! 🚀\n\n"
+        f"Hesabına **+{kazanilan_gunluk} carpipuan** eklendi! 🚀\n\n"
         f"💰 Toplam carpipuanın: {user_data['carpipuan']}",
         reply_markup=reply_markup,
         parse_mode="Markdown",
@@ -408,48 +448,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
   # 8. ANA MENÜ
   elif query.data == "ana_menu":
-    keyboard = [
-        [
-            InlineKeyboardButton(
-                "📦 Hesap Satın Al (15 carpipuan)", callback_data="hesap_al_puan"
-            )
-        ],
-        [
-            InlineKeyboardButton(
-                "⭐ Gerçek Yıldız ile Hesap Al (100 Yıldız)",
-                callback_data="yildiz_hesap",
-            )
-        ],
-        [
-            InlineKeyboardButton(
-                "⭐ Gerçek Yıldız ile carpipuan Al (50 - 40K)",
-                callback_data="carpipuan_menu",
-            )
-        ],
-        [
-            InlineKeyboardButton(
-                "🎁 Promosyon Kodu Gir (0.3 - 2 Puan)",
-                callback_data="promo_gir_menu",
-            )
-        ],
-        [
-            InlineKeyboardButton(
-                "🎁 Günlük Ödül Al (+10 carpipuan)", callback_data="gunluk_odul"
-            )
-        ],
-        [
-            InlineKeyboardButton(
-                "👥 Arkadaşını Davet Et (+5 carpipuan)",
-                callback_data="davet_et",
-            )
-        ],
-        [
-            InlineKeyboardButton(
-                "👤 Profilim & Sana Özel Kodum", callback_data="profil"
-            )
-        ],
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
     await query.edit_message_text(
         "🚀 CPM1 Hesap Mağazasına Hoş Geldin!\n\n"
         f"📦 Güncel Stok: {stok_adet} adet hesap\n"
@@ -457,19 +455,20 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🎁 Size Özel Hediye Kodunuz: `{user_data['hediye_kodu']}`\n"
         "(15 carpipuan = 1 Ücretsiz Hesap)\n\n"
         "Aşağıdaki menüden işlem seçebilirsin:",
-        reply_markup=reply_markup,
+        reply_markup=get_ana_menu_keyboard(stok_adet),
         parse_mode="Markdown",
     )
+  elif query.data == "ignore":
+    pass
 
 
-# --- TELEGRAM YILDIZI ÖDEME ONAY MEKANİZMASI (PRE-CHECKOUT) ---
+# --- ÖDEME ÖNCESİ ONAY ---
 async def pre_checkout_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
   query = update.pre_checkout_query
-  # Kullanıcı ödeme yapmaya bastığında Telegram onay sorar, hemen onay veriyoruz
   await query.answer(ok=True)
 
 
-# --- ÖDEME BAŞARIYLA TAMAMLANDIKTAN SONRA ÜRÜN TESLİMİ ---
+# --- ÖDEME BAŞARILI OLUNCA ÜRÜN TESLİMİ ---
 async def successful_payment_handler(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ):
@@ -487,19 +486,21 @@ async def successful_payment_handler(
 
   user_data = KULLANICILAR[user_id]
 
-  if payload == "hesap_satin_al_payload":
-    verilenler = stok_dusur_ve_ver(1)
+  if payload.startswith("hesap_satin_al_coklu_"):
+    adet = int(payload.split("_")[4])
+    verilenler = stok_dusur_ve_ver(adet)
     if verilenler:
+      hesaplar_str = "\n".join([f"`{h}`" for h in verilenler])
       await update.message.reply_text(
-          "⭐ **Gerçek Telegram Yıldızı ile Ödeme Başarılı!**\n\n"
-          f"🔑 Satın Aldığın Hesap Bilgileri:\n`{verilenler[0]}`\n\n"
+          "⭐ **Yıldız ile Ödeme Başarılı!**\n\n"
+          f"🔑 Satın Aldığın {adet} Adet Hesap Bilgileri:\n{hesaplar_str}\n\n"
           "Güle güle kullan reis! 🎮",
           parse_mode="Markdown",
       )
     else:
       await update.message.reply_text(
-          "❌ Ödeme alındı fakat maalesef stok bitti! Lütfen yöneticiye"
-          " bildir."
+          "❌ Ödeme alındı fakat maalesef stok bitti veya yetersiz!"
+          " Lütfen yöneticiye bildir."
       )
 
   elif payload.startswith("puan_yukle_"):
@@ -508,7 +509,7 @@ async def successful_payment_handler(
         40000.0, user_data["carpipuan"] + puan_miktari
     )
     await update.message.reply_text(
-        "⭐ **Gerçek Telegram Yıldızı ile Ödeme Başarılı!**\n\n"
+        "⭐ **Yıldız ile Ödeme Başarılı!**\n\n"
         f"🎉 Hesabına **+{puan_miktari:,} carpipuan** eklendi! 🚀\n"
         f"💰 Güncel carpipuanın: {user_data['carpipuan']} / 40,000",
         parse_mode="Markdown",
@@ -539,7 +540,6 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
       )
       return
 
-    # 0.3'ten başlayıp maksimum 2.0'ye kadar rastgele ondalıklı carpipuan belirleme
     mumkun_puanlar = [0.3, 0.5, 0.7, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0]
     kazanilan_puan = random.choice(mumkun_puanlar)
 
@@ -576,7 +576,7 @@ def main():
       MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler)
   )
 
-  print("Gerçek Telegram Yıldızı Ödeme Altyapılı Bot Çalışıyor...")
+  print("Bot Güncellendi ve Çalışıyor...")
   application.run_polling()
 
 
@@ -586,4 +586,3 @@ if __name__ == "__main__":
   t.start()
 
   main()
-    
