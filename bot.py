@@ -305,9 +305,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
       keyboard = [[InlineKeyboardButton("🔙 Ana Menü", callback_data="ana_menu")]]
       try:
         await query.edit_message_text(
-            f"✅ {adet} Adet Hesap Başarıyla Verildi! (-{gerekli_puan}"
-            f" Puan)\n\n🔑 Bilgiler:\n{hesaplar_metni}\n\n💰 Kalan Puanın:"
-            f" +{user_data['carpipuan']}",
+            f"✅ {adet} Adet Hesap Başarıyla Verildi! (-{gerekli_puan} Puan)\n\n🔑 Bilgiler:\n{hesaplar_metni}\n\n💰 Kalan Puanın: +{user_data['carpipuan']}",
             reply_markup=InlineKeyboardMarkup(keyboard),
             parse_mode="Markdown",
         )
@@ -361,9 +359,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
       keyboard = [[InlineKeyboardButton("🔙 Ana Menü", callback_data="ana_menu")]]
       await query.edit_message_text(
-          f"🎁 Sana Özel Promo Kodu Üretildi!\n\n🔑 Kodun: `{rastgele_kod}`\n✨"
-          f" Hediyen Hesaba Eklendi: **+{kazanilan_odul} Puan**\n💰 Toplam"
-          f" Puanın: +{user_data['carpipuan']}",
+          f"🎁 Sana Özel Promo Kodu Üretildi!\n\n🔑 Kodun: `{rastgele_kod}`\n✨ Hediyen Hesaba Eklendi: **+{kazanilan_odul} Puan**\n💰 Toplam Puanın: +{user_data['carpipuan']}",
           reply_markup=InlineKeyboardMarkup(keyboard),
           parse_mode="Markdown",
       )
@@ -470,8 +466,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     keyboard = [[InlineKeyboardButton("🔙 Ana Menü", callback_data="ana_menu")]]
     await query.edit_message_text(
-        f"🎁 Günlük Ödül: **+{kazanilan} Puan** eklendi!\n💰 Toplam:"
-        f" +{user_data['carpipuan']}",
+        f"🎁 Günlük Ödül: **+{kazanilan} Puan** eklendi!\n💰 Toplam: +{user_data['carpipuan']}",
         reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode="Markdown",
     )
@@ -578,8 +573,7 @@ async def successful_payment_callback(
     if verilenler:
       hesaplar_metni = "\n".join([f"`{h}`" for h in verilenler])
       await update.message.reply_text(
-          f"⭐ **Yıldız ile {adet} Adet Hesap Başarıyla Alındı!**\n\n🔑"
-          f" Bilgiler:\n{hesaplar_metni}",
+          f"⭐ **Yıldız ile {adet} Adet Hesap Başarıyla Alındı!**\n\n🔑 Bilgiler:\n{hesaplar_metni}",
           parse_mode="Markdown",
       )
 
@@ -590,8 +584,7 @@ async def successful_payment_callback(
     user_data["carpipuan"] = round(user_data["carpipuan"] + yuklenen_puan, 1)
     veri_kaydet()
     await update.message.reply_text(
-        f"⭐ **Carpipuan Başarıyla Yüklendi!**\n\n✨ Hesabına **+{yuklenen_puan}"
-        f" Puan** eklendi! 🚀\n💰 Güncel Puanın: +{user_data['carpipuan']}",
+        f"⭐ **Carpipuan Başarıyla Yüklendi!**\n\n✨ Hesabına **+{yuklenen_puan} Puan** eklendi! 🚀\n💰 Güncel Puanın: +{user_data['carpipuan']}",
         parse_mode="Markdown",
     )
 
@@ -623,5 +616,10 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
       veri_kaydet()
 
       await update.message.reply_text(
-          f"🎉 **Tebrikler Şifreyi Doğru Çözdün!**\n\n"
-          f"✨ Büyük Ödül Hesabına Eklendi: **+{kazanilan_odul} Puan**
+          f"🎉 **Tebrikler Şifreyi Doğru Çözdün!**\n\n✨ Büyük Ödül Hesabına Eklendi: **+{kazanilan_odul} Puan** 🚀\n💰 Toplam Puanın: +{user_data['carpipuan']}",
+          parse_mode="Markdown",
+      )
+
+
+def main():
+  toke
