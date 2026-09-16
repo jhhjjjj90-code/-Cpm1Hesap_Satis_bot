@@ -18,7 +18,7 @@ from telegram.ext import (
 
 app = Flask(__name__)
 
-# Senin Telegram ID'n ile güvenli bir şekilde güncellendi
+# Senin Telegram ID'n
 ADMIN_IDS = [8520025523]
 
 
@@ -251,7 +251,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
   )
 
 
-# --- ADMIN PANELİ KOMUTU ---
 async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
   user_id = update.effective_user.id
   if user_id not in ADMIN_IDS:
@@ -615,4 +614,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )[:10]
     metin = "🏆 **En İyi 10 Liderlik Tablosu**\n\n"
     for sira, (uid, udata) in enumerate(sirali, 1):
-      metin += f"{sira}. Kull
+      metin += f"{sira}. Kullanıcı: **+{udata['carpipuan']}** Puan\n"
+
+    keyboard = [[InlineK
