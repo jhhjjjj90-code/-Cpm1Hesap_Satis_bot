@@ -29,6 +29,7 @@ def home():
 
 def run_web():
   port = int(os.environ.get("PORT", 8080))
+  print(f"Web sunucusu {port} portunda baslatiliyor...")
   app.run(host="0.0.0.0", port=port)
 
 
@@ -614,5 +615,4 @@ async def successful_payment_callback(
           parse_mode="Markdown",
       )
 
-  elif payload.startswith("puan_yukle_"):
-    parcalar = pay
+  e
