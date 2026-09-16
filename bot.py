@@ -195,8 +195,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         try:
                             await context.bot.send_message(
                                 chat_id=int(ref_id_str),
-                                text="🎉 Tebrikler reis! Davet ettiğin kullanıcı botu başlattı ve hesabına **+5 puan** eklendi! 🚀",
-                                parse_mode="Markdown",
+                                text="🎉 Tebrikler reis! Davet ettiğin kullanıcı botu başlattı ve hesabına +5 puan eklendi!",
                             )
                         except Exception:
                             pass
@@ -210,7 +209,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         mesaj,
         reply_markup=get_ana_menu_keyboard(stok_adet, user_data),
-        parse_mode="Markdown",
     )
 
 
@@ -222,7 +220,7 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     stok_adet = len(stok_oku())
     toplam_uye = len(KULLANICILAR)
-    mesaj = f"👑 **Admin Paneli**\n\n👥 Toplam Üye: `{toplam_uye}`\n📦 Güncel Stok: `{stok_adet}`"
+    mesaj = f"👑 Admin Paneli\n\n👥 Toplam Üye: {toplam_uye}\n📦 Güncel Stok: {stok_adet}"
     await update.message.reply_text(
         mesaj,
         reply_markup=InlineKeyboardMarkup([
@@ -231,7 +229,6 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("📢 Duyuru Gönder", callback_data="admin_duyuru")],
             [InlineKeyboardButton("🔙 Ana Menü", callback_data="ana_menu")],
         ]),
-        parse_mode="Markdown",
     )
 
 
@@ -268,14 +265,13 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data["beklenen_islem"] = "es3_dosya"
         keyboard = [[InlineKeyboardButton("🔙 İptal / Ana Menü", callback_data="ana_menu")]]
         mesaj = (
-            "📁 **Es3 Şifre Oluşturma Paneli**\n\n"
-            "1️⃣ **Adım 1:** Lütfen cihazınızdaki **.es3 uzantılı** dosyanızı belge/dosya olarak sohbete yükleyin:"
+            "📁 Es3 Şifre Oluşturma Paneli\n\n"
+            "1️⃣ Adım 1: Lütfen cihazınızdaki .es3 uzantılı dosyanızı belge/dosya olarak sohbete yükleyin:"
         )
         try:
             await query.edit_message_text(
                 mesaj,
                 reply_markup=InlineKeyboardMarkup(keyboard),
-                parse_mode="Markdown",
             )
         except Exception:
             pass
@@ -285,7 +281,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data["beklenen_islem"] = "promo_gir"
         keyboard = [[InlineKeyboardButton("🔙 İptal / Ana Menü", callback_data="ana_menu")]]
         await query.edit_message_text(
-            "🎟️ Lütfen kullanmak istediğin **Promo Kodu** sohbete mesaj olarak yaz:",
+            "🎟️ Lütfen kullanmak istediğin Promo Kodu sohbete mesaj olarak yaz:",
             reply_markup=InlineKeyboardMarkup(keyboard),
         )
 
@@ -296,11 +292,10 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data["beklenen_admin_islem"] = "promo_olustur"
         await query.answer()
         await query.edit_message_text(
-            "🎟️ Oluşturmak istediğin **Promo Kod ve Puan Değerini** yaz:\n\nÖrnek:\n`HEDİYE50 50`",
+            "🎟️ Oluşturmak istediğin Promo Kod ve Puan Değerini yaz:\n\nÖrnek:\nHEDIYE50 50",
             reply_markup=InlineKeyboardMarkup(
                 [[InlineKeyboardButton("🔙 İptal", callback_data="ana_menu")]]
             ),
-            parse_mode="Markdown",
         )
 
     elif query.data == "admin_stok":
@@ -308,13 +303,12 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.answer("Yetkin yok!", show_alert=True)
             return
         await query.answer()
-        mesaj = f"📦 Stokta toplam **{stok_adet}** hesap var. `stok.txt` üzerinden ekleme yapabilirsin."
+        mesaj = f"📦 Stokta toplam {stok_adet} hesap var. stok.txt üzerinden ekleme yapabilirsin."
         await query.edit_message_text(
             mesaj,
             reply_markup=InlineKeyboardMarkup(
                 [[InlineKeyboardButton("🔙 Menü", callback_data="ana_menu")]]
             ),
-            parse_mode="Markdown",
         )
 
     elif query.data == "admin_duyuru":
@@ -402,20 +396,18 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             veri_kaydet()
 
-            hesaplar_metni = "\n".join([f"`{h}`" for h in verilenler])
+            hesaplar_metni = "\n".join(verilenler)
             keyboard = [[InlineKeyboardButton("🔙 Menü", callback_data="ana_menu")]]
             try:
                 mesaj = f"✅ VIP Hesaplar Verildi!\n\n🔑 Bilgiler:\n{hesaplar_metni}\n\n💰 Kalan Puan: +{user_data['carpipuan']}"
                 await query.edit_message_text(
                     mesaj,
                     reply_markup=InlineKeyboardMarkup(keyboard),
-                    parse_mode="Markdown",
                 )
             except Exception:
                 await context.bot.send_message(
                     chat_id=user_id,
                     text=f"✅ VIP Hesaplar Verildi:\n\n{hesaplar_metni}",
-                    parse_mode="Markdown",
                 )
         else:
             await query.answer("❌ Stok hatası!", show_alert=True)
@@ -513,11 +505,10 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         veri_kaydet()
 
         keyboard = [[InlineKeyboardButton("🔙 Menü", callback_data="ana_menu")]]
-        mesaj = f"🎁 Günlük Ödül: **+{kazanilan} Puan**"
+        mesaj = f"🎁 Günlük Ödül: +{kazanilan} Puan"
         await query.edit_message_text(
             mesaj,
             reply_markup=InlineKeyboardMarkup(keyboard),
-            parse_mode="Markdown",
         )
 
     elif query.data == "davet":
@@ -526,11 +517,10 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         davet_sayisi = user_data.get("davet_sayisi", 0)
 
         keyboard = [[InlineKeyboardButton("🔙 Menü", callback_data="ana_menu")]]
-        mesaj = f"👥 **Davet Et Kazan!**\n\nLinkin:\n`{davet_linki}`\n\nDavet Edilen: **{davet_sayisi}**"
+        mesaj = f"👥 Davet Et Kazan!\n\nLinkin:\n{davet_linki}\n\nDavet Edilen: {davet_sayisi}"
         await query.edit_message_text(
             mesaj,
             reply_markup=InlineKeyboardMarkup(keyboard),
-            parse_mode="Markdown",
         )
 
     elif query.data == "liderlik":
@@ -538,24 +528,23 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         sirali = sorted(
             KULLANICILAR.items(), key=lambda x: x[1]["carpipuan"], reverse=True
         )[:10]
-        metin = "🏆 **Liderlik Tablosu**\n\n"
+        metin = "🏆 Liderlik Tablosu\n\n"
         for sira, (uid, udata) in enumerate(sirali, 1):
-            metin += f"{sira}. carpipuan: **+{udata['carpipuan']}**\n"
+            metin += f"{sira}. carpipuan: +{udata['carpipuan']}\n"
 
         keyboard = [[InlineKeyboardButton("🔙 Menü", callback_data="ana_menu")]]
         await query.edit_message_text(
-            metin, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown"
+            metin, reply_markup=InlineKeyboardMarkup(keyboard)
         )
 
     elif query.data == "profil":
         await query.answer()
         keyboard = [[InlineKeyboardButton("🔙 Menü", callback_data="ana_menu")]]
         davet_sayisi = user_data.get("davet_sayisi", 0)
-        mesaj = f"👤 **Profilin:**\n\nID: `{user_id}`\ncarpipuan: `+{user_data['carpipuan']}`\nDavet: **{davet_sayisi}**"
+        mesaj = f"👤 Profilin:\n\nID: {user_id}\ncarpipuan: +{user_data['carpipuan']}\nDavet: {davet_sayisi}"
         await query.edit_message_text(
             mesaj,
             reply_markup=InlineKeyboardMarkup(keyboard),
-            parse_mode="Markdown",
         )
 
     elif query.data == "ana_menu":
@@ -563,4 +552,19 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data["beklenen_islem"] = None
         context.user_data["beklenen_admin_islem"] = None
         try:
-            mesaj = f"🚀 CPM1 Hesap Mağa
+            mesaj = f"🚀 CPM1 Hesap Mağazasına Hoş Geldin!\n\n📦 Stok: {stok_adet}\ncarpipuanın: +{user_data['carpipuan']}"
+            await query.edit_message_text(
+                mesaj,
+                reply_markup=get_ana_menu_keyboard(stok_adet, user_data),
+            )
+        except Exception:
+            pass
+
+
+async def pre_checkout_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.pre_checkout_query
+    await query.answer(ok=True)
+
+
+async def successful_payment_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    pa
