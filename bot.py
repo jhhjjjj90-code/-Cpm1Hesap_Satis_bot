@@ -55,7 +55,7 @@ def stok_dusur_ve_ver(adet=1):
   return verilecek_hesaplar
 
 
-# --- 6 HANELİ BENZERSİZ KOD ÜRETİCİ (392.870+ Kişi Kapasiteli) ---
+# --- 6 HANELİ BENZERSİZ KOD ÜRETİCİ ---
 def benzersiz_alti_hane_uret():
   karakterler = string.ascii_uppercase + string.digits  # A-Z, 0-9
   while True:
@@ -86,7 +86,7 @@ def get_ana_menu_keyboard(stok_adet, user_data=None):
       ],
       [
           InlineKeyboardButton(
-              "🎁 Promosyon Kodu Gir (0.3 - 2 Puan)",
+              "🎁 Promosyon Kodu Gir (0.3 - 5 Puan)",
               callback_data="promo_gir_menu",
           )
       ],
@@ -387,15 +387,18 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.edit_message_text(
         "🎁 **Sana Özel 6 Haneli Promosyon Kodun Oluşturuldu!**\n\n"
         f"Kodun: `{user_data['hediye_kodu']}`\n\n"
-        "✨ *Bu benzersiz 6 haneli kodu başkaları promosyon kodu olarak"
-        " kullanabilir. İstediğin gibi 'Kodumu Al' butonu hesabından"
-        " kaldırıldı!*",
+        "✨ *Bu kodu 'Promosyon Kodu Gir' menüsünden kendi hesabında"
+        " kullanabilirsin!*",
         reply_markup=reply_markup,
         parse_mode="Markdown",
     )
     return
 
   elif query.data == "promo_gir_menu":
+    if not user_data["hediye_kodu"]:
+      user_data["hediye_kodu"] = benzersiz_alti_hane_uret()
+      user_data["kod_alindi"] = True
+
     user_data["kod_bekleniyor"] = True
     keyboard = [
         [InlineKeyboardButton("🔙 Ana Menüye Dön", callback_data="ana_menu")]
@@ -403,10 +406,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
     await query.edit_message_text(
         "🎁 **Promosyon Kodu Girişi**\n\n"
-        "Lütfen sohbet penceresine **6 haneli Promosyon Kodunu** yazarak"
+        f"Sana özel kodun: `{user_data['hediye_kodu']}`\n\n"
+        "Lütfen sohbet penceresine **kendi 6 haneli kodunu** yazarak"
         " gönder.\n\n"
-        "✨ *Kod başarıyla girildiğinde sistem sana rastgele **0.3 ile 2.0"
-        " arası** sürpriz carpipuan kazandıracak!*",
+        "✨ *Kodunu girdiğinde sistem sana rastgele **0.3 ile 5.0 arası**"
+        " sürpriz carpipuan kazandıracak!*",
         reply_markup=reply_markup,
         parse_mode="Markdown",
     )
@@ -457,6 +461,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "👥 Arkadaşını Davet Et & carpipuan Kazan!\n\n"
         "Davet ettiğin her arkadaşın başına hesabına **+5 carpipuan**"
         f" eklenir.\n\n🔗 Kişisel Davet Linkin:\n`{ref_link}`",
+        reply_markup=reply_markup,
         parse_mode="Markdown",
     )
 
@@ -479,6 +484,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🏆 carpipuan: {user_data['carpipuan']}\n"
         f"📦 Mağaza Stok: {stok_adet} adet\n\n"
         f"🔗 Davet Linkin:\n`{ref_link}`",
+        reply_markup=reply_markup,
         parse_mode="Markdown",
     )
 
@@ -565,43 +571,40 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
   if user_data.get("kod_bekleniyor", False):
     user_data["kod_bekleniyor"] = False
 
-    if user_data["hediye_kodu"] and text == user_data["hediye_kodu"]:
+    # Eğer kullanıcının henüz kodu yoksa oluştur
+    if not user_data["hediye_kodu"]:
+      user_data["hediye_kodu"] = benzersiz_alti_hane_uret()
+
+    # Kullanıcı sadece KENDİ kodunu girebilir
+    if text != user_data["hediye_kodu"]:
       await update.message.reply_text(
-          "❌ Kendi promosyon kodunu kendi hesabında kullanamazsın reis! 😄"
+          "❌ Bu kod sana ait değil reis! Sadece kendi özel promosyon"
+          f" kodunu (`{user_data['hediye_kodu']}`) girebilirsin. 😄"
       )
       return
 
-    hedef_sahip_id = None
-    for uid, udata in KULLANICILAR.items():
-      if udata["hediye_kodu"] == text:
-        hedef_sahip_id = uid
-        break
-
-    if hedef_sahip_id:
-      if text in KULLANILAN_KODLAR:
-        await update.message.reply_text(
-            "❌ Bu promosyon kodu daha önce kullanılmış veya tüketilmiş!"
-        )
-        return
-
-      mumkun_puanlar = [0.3, 0.5, 0.7, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0]
-      kazanilan_puan = random.choice(mumkun_puanlar)
-
-      KULLANILAN_KODLAR.add(text)
-      user_data["carpipuan"] = round(
-          min(40000.0, user_data["carpipuan"] + kazanilan_puan), 1
-      )
-
+    if text in KULLANILAN_KODLAR:
       await update.message.reply_text(
-          f"🎉 **Tebrikler Reis! 6 Haneli Kod Başarıyla Onaylandı!**\n\n"
-          f"🎁 Promosyon Ödülün: **+{kazanilan_puan} carpipuan** hesabına"
-          f" eklendi! 🚀\n💰 Güncel carpipuanın: {user_data['carpipuan']}",
-          parse_mode="Markdown",
+          "❌ Bu promosyon kodunu daha önce kullandın, ikinci kez"
+          " kullanamazsın!"
       )
-    else:
-      await update.message.reply_text(
-          "❌ Geçersiz promosyon kodu! Lütfen doğru bir 6 haneli kod gir."
-      )
+      return
+
+    # 0.3 ile 5.0 arasında rastgele puan aralığı
+    mumkun_puanlar = [0.3, 0.5, 0.8, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0]
+    kazanilan_puan = random.choice(mumkun_puanlar)
+
+    KULLANILAN_KODLAR.add(text)
+    user_data["carpipuan"] = round(
+        min(40000.0, user_data["carpipuan"] + kazanilan_puan), 1
+    )
+
+    await update.message.reply_text(
+        f"🎉 **Tebrikler Reis! Kendi Kodunu Başarıyla Kullandın!**\n\n"
+        f"🎁 Promosyon Ödülün: **+{kazanilan_puan} carpipuan** hesabına"
+        f" eklendi! 🚀\n💰 Güncel carpipuanın: {user_data['carpipuan']}",
+        parse_mode="Markdown",
+    )
   else:
     await update.message.reply_text(
         "Botu kullanmak için /start komutunu gönderebilir veya menü"
@@ -626,7 +629,7 @@ def main():
       MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler)
   )
 
-  print("Bot Tamamen Güncellendi: 6 Haneli Kod & Düzeltilmiş Link Aktif...")
+  print("Bot Güncellendi: Kullanıcı Kendi Kodunu Girip 5 Puana Kadar Ödül Alabiliyor!")
   application.run_polling()
 
 
