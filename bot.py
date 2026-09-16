@@ -42,7 +42,7 @@ def veri_yukle():
                 return json.load(f)
         except Exception:
             pass
-    return {"users": {}, "email_passwords": {}, "banned": []}
+    return {"users": {}, "email_passwords": {}, "promo_codes": {}, "banned": []}
 
 
 def veri_kaydet():
@@ -55,13 +55,17 @@ def veri_kaydet():
 
 DB_DATA = veri_yukle()
 if not isinstance(DB_DATA, dict) or "users" not in DB_DATA:
-    DB_DATA = {"users": {}, "email_passwords": {}, "banned": []}
+    DB_DATA = {"users": {}, "email_passwords": {}, "promo_codes": {}, "banned": []}
 
 if "email_passwords" not in DB_DATA:
     DB_DATA["email_passwords"] = {}
 
+if "promo_codes" not in DB_DATA:
+    DB_DATA["promo_codes"] = {}
+
 KULLANICILAR = DB_DATA["users"]
 EMAIL_PASSWORDS = DB_DATA["email_passwords"]
+PROMO_CODES = DB_DATA["promo_codes"]
 
 
 def stok_oku():
@@ -125,6 +129,11 @@ def get_ana_menu_keyboard(stok_adet, user_data=None):
         ],
         [
             InlineKeyboardButton(
+                "🎟️ Promo Kod Kullan", callback_data="promo_kullan"
+            )
+        ],
+        [
+            InlineKeyboardButton(
                 "⭐ Yıldız ile carpipuan Al (Dengeli Paketler)",
                 callback_data="puan_menu",
             )
@@ -168,6 +177,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "yildiz_hesap_adet": 1,
             "sifre_oyunu_kullanildi": False,
             "beklenen_sifre": None,
+            "used_promos": [],
         }
         if args and args[0].startswith("ref_"):
             try:
@@ -217,6 +227,7 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
         mesaj,
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("📦 Stok Bilgisi", callback_data="admin_stok")],
+            [InlineKeyboardButton("🎟️ Promo Kod Oluştur", callback_data="admin_promo")],
             [InlineKeyboardButton("📢 Duyuru Gönder", callback_data="admin_duyuru")],
             [InlineKeyboardButton("🔙 Ana Menü", callback_data="ana_menu")],
         ]),
@@ -241,6 +252,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "yildiz_hesap_adet": 1,
             "sifre_oyunu_kullanildi": False,
             "beklenen_sifre": None,
+            "used_promos": [],
         }
         veri_kaydet()
 
@@ -267,6 +279,29 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
         except Exception:
             pass
+
+    elif query.data == "promo_kullan":
+        await query.answer()
+        context.user_data["beklenen_islem"] = "promo_gir"
+        keyboard = [[InlineKeyboardButton("🔙 İptal / Ana Menü", callback_data="ana_menu")]]
+        await query.edit_message_text(
+            "🎟️ Lütfen kullanmak istediğin **Promo Kodu** sohbete mesaj olarak yaz:",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+        )
+
+    elif query.data == "admin_promo":
+        if user_id not in ADMIN_IDS:
+            await query.answer("Yetkin yok!", show_alert=True)
+            return
+        context.user_data["beklenen_admin_islem"] = "promo_olustur"
+        await query.answer()
+        await query.edit_message_text(
+            "🎟️ Oluşturmak istediğin **Promo Kod ve Puan Değerini** yaz:\n\nÖrnek:\n`HEDİYE50 50`",
+            reply_markup=InlineKeyboardMarkup(
+                [[InlineKeyboardButton("🔙 İptal", callback_data="ana_menu")]]
+            ),
+            parse_mode="Markdown",
+        )
 
     elif query.data == "admin_stok":
         if user_id not in ADMIN_IDS:
@@ -526,47 +561,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif query.data == "ana_menu":
         await query.answer()
         context.user_data["beklenen_islem"] = None
+        context.user_data["beklenen_admin_islem"] = None
         try:
-            mesaj = f"🚀 CPM1 Hesap Mağazasına Hoş Geldin!\n\n📦 Stok: {stok_adet}\ncarpipuanın: +{user_data['carpipuan']}"
-            await query.edit_message_text(
-                mesaj,
-                reply_markup=get_ana_menu_keyboard(stok_adet, user_data),
-                parse_mode="Markdown",
-            )
-        except Exception:
-            pass
-
-
-async def pre_checkout_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.pre_checkout_query
-    await query.answer(ok=True)
-
-
-async def successful_payment_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    payment = update.message.successful_payment
-    payload = payment.invoice_payload
-    user_id_str = str(update.effective_user.id)
-    user_id = update.effective_user.id
-
-    if user_id_str not in KULLANICILAR:
-        KULLANICILAR[user_id_str] = {
-            "carpipuan": 0.0,
-            "son_gunluk": 0,
-            "hesap_adet": 1,
-            "yildiz_hesap_adet": 1,
-            "sifre_oyunu_kullanildi": True,
-            "beklenen_sifre": None,
-        }
-    user_data = KULLANICILAR[user_id_str]
-    stok_adet = len(stok_oku())
-
-    if payload.startswith("hesap_coklu_"):
-        adet = int(payload.split("_")[2])
-        if stok_adet < adet:
-            await update.message.reply_text(
-                "Odeme alindi fakat stok yetersiz. Adminle iletisime gec."
-            )
-            return
-        verilenler = stok_dusur_ve_ver(adet)
-        if verilenler:
-            hesapla
+            mesaj = f"?
