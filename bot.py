@@ -21,13 +21,13 @@ app = Flask(__name__)
 # Senin Telegram ID'n
 ADMIN_IDS = [8520025523]
 
-# Botunun kullanıcı adını buraya tırnak içinde yaz (örn: "CpmHesapBotun")
-BOT_USERNAME = "CpmHesapBot"
+# Botunun kullanıcı adını buraya yaz
+BOT_USERNAME = "Cpm1hesap_bot"
 
 
 @app.route("/")
 def home():
-  return "Cpm1 Hesap Satis Botu Aktif ve Calisiyor! 🚀"
+  return "Cpm1 Hesap Satis Botu Aktif and Calisiyor! 🚀"
 
 
 def run_web():
@@ -125,7 +125,7 @@ def get_ana_menu_keyboard(stok_adet, user_data=None):
           InlineKeyboardButton(
               "📦 "
               + str(secilen_adet)
-              + " Adet VIP FULL+FULL HESAP ("
+              + " VIP Hesap ("
               + str(toplam_puan)
               + " Puan)"
               + karaborsa_uyari,
@@ -135,9 +135,7 @@ def get_ana_menu_keyboard(stok_adet, user_data=None):
       ],
       [
           InlineKeyboardButton(
-              "💳 Seçilenleri carpipuan ile Al ("
-              + str(toplam_puan)
-              + " Puan)",
+              "💳 Puan ile Al (" + str(toplam_puan) + " Puan)",
               callback_data="hp_al",
           )
       ],
@@ -146,7 +144,7 @@ def get_ana_menu_keyboard(stok_adet, user_data=None):
           InlineKeyboardButton(
               "⭐ "
               + str(yildiz_adet)
-              + " Adet VIP FULL+FULL HESAP ("
+              + " VIP Hesap ("
               + str(toplam_yildiz)
               + " Yıldız)",
               callback_data="bos_bilgi",
@@ -155,21 +153,18 @@ def get_ana_menu_keyboard(stok_adet, user_data=None):
       ],
       [
           InlineKeyboardButton(
-              "⭐ Seçilenleri Yıldız ile Al ("
-              + str(toplam_yildiz)
-              + " Yıldız)",
+              "⭐ Yıldız ile Al (" + str(toplam_yildiz) + " Yıldız)",
               callback_data="y_al",
           )
       ],
       [
           InlineKeyboardButton(
-              "⭐ Yıldız ile carpipuan Al (Dengeli Paketler)",
-              callback_data="puan_menu",
+              "⭐ Yıldız ile Puan Al", callback_data="puan_menu"
           )
       ],
       [
           InlineKeyboardButton(
-              "🎁 Otomatik Çekilişe Katıl", callback_data="join_giveaway"
+              "🎁 Çekilişe Katıl", callback_data="join_giveaway"
           )
       ],
   ]
@@ -183,18 +178,14 @@ def get_ana_menu_keyboard(stok_adet, user_data=None):
 
   if user_data and not user_data.get("promo_alindi", False):
     keyboard.append([
-        InlineKeyboardButton("🎁 Bana Özel Promo Kodu Üret", callback_data="promo")
+        InlineKeyboardButton("🎁 Sana Özel Promo Kod", callback_data="promo")
     ])
 
   keyboard.extend([
-      [InlineKeyboardButton("🎁 Günlük Ödül Al (0.3 - 2 Puan)", callback_data="gunluk")],
-      [InlineKeyboardButton("🏆 En İyiler (Liderlik)", callback_data="liderlik")],
-      [
-          InlineKeyboardButton(
-              "👥 Arkadaşını Davet Et (+5 carpipuan)", callback_data="davet"
-          )
-      ],
-      [InlineKeyboardButton("👤 Profilim & Bilgilerim", callback_data="profil")],
+      [InlineKeyboardButton("🎁 Günlük Ödül Al", callback_data="gunluk")],
+      [InlineKeyboardButton("🏆 Liderlik Tablosu", callback_data="liderlik")],
+      [InlineKeyboardButton("👥 Arkadaşını Davet Et (+5)", callback_data="davet")],
+      [InlineKeyboardButton("👤 Profilim", callback_data="profil")],
   ])
 
   return InlineKeyboardMarkup(keyboard)
@@ -240,7 +231,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
               await context.bot.send_message(
                   chat_id=int(ref_id_str),
                   text=(
-                      "🎉 Tebrikler reis! Davet ettiğin bir kullanıcı botu"
+                      "🎉 Tebrikler reis! Davet ettiğin kullanıcı botu"
                       " başlattı ve hesabına **+5 carpipuan** eklendi! 🚀"
                   ),
                   parse_mode="Markdown",
@@ -255,8 +246,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
   user_data = KULLANICILAR[user_id_str]
 
   await update.message.reply_text(
-      "🚀 CPM1 Hesap Mağazasına & Otomasyon İmparatorluğuna Hoş Geldin!\n\n📦"
-      " Güncel Stok: "
+      "🚀 CPM1 Hesap Mağazasına Hoş Geldin!\n\n📦 Güncel Stok: "
       + str(stok_adet)
       + " adet hesap\n🏆 carpipuanın: +"
       + str(user_data["carpipuan"])
@@ -269,23 +259,23 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
   user_id = update.effective_user.id
   if user_id not in ADMIN_IDS:
-    await update.message.reply_text("❌ Bu komutu kullanmaya yetkin yok reis!")
+    await update.message.reply_text("❌ Yetkin yok reis!")
     return
 
   stok_adet = len(stok_oku())
   toplam_uye = len(KULLANICILAR)
 
   keyboard = [
-      [InlineKeyboardButton("📦 Stok Durumu & Bilgi", callback_data="admin_stok")],
-      [InlineKeyboardButton("📢 Tüm Kullanıcılara Duyuru At", callback_data="admin_duyuru")],
-      [InlineKeyboardButton("🔙 Ana Menüye Dön", callback_data="ana_menu")],
+      [InlineKeyboardButton("📦 Stok Bilgisi", callback_data="admin_stok")],
+      [InlineKeyboardButton("📢 Duyuru Gönder", callback_data="admin_duyuru")],
+      [InlineKeyboardButton("🔙 Ana Menü", callback_data="ana_menu")],
   ]
   await update.message.reply_text(
-      "👑 **Admin Paneline Hoş Geldin Reis!**\n\n👥 Toplam Üye: `"
+      "👑 **Admin Paneli**\n\n👥 Toplam Üye: `"
       + str(toplam_uye)
       + "`\n📦 Güncel Stok: `"
       + str(stok_adet)
-      + "`\n\nYapmak istediğin işlemi seç:",
+      + "`",
       reply_markup=InlineKeyboardMarkup(keyboard),
       parse_mode="Markdown",
   )
@@ -297,7 +287,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
   user_id = query.from_user.id
 
   if user_id_str in DB_DATA.get("banned", []):
-    await query.answer("❌ Engellendiğiniz için işlem yapamazsınız.", show_alert=True)
+    await query.answer("❌ Engellendiğin için işlem yapamazsın.", show_alert=True)
     return
 
   if user_id_str not in KULLANICILAR:
@@ -328,12 +318,12 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
       return
     await query.answer()
     await query.edit_message_text(
-        "📦 **Stok Bilgisi:**\nŞu anda stokta toplam **"
+        "📦 Stokta toplam **"
         + str(stok_adet)
-        + "** adet hesap bulunmaktadır.\n\nStok eklemek için sunucuya"
-        " `stok.txt` dosyası üzerinden alt alta `kadi:sifre` formatında ekleme"
-        " yapabilirsin.",
-        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Admin Menü", callback_data="ana_menu")]]),
+        + "** hesap var. `stok.txt` üzerinden ekleme yapabilirsin.",
+        reply_markup=InlineKeyboardMarkup(
+            [[InlineKeyboardButton("🔙 Menü", callback_data="ana_menu")]]
+        ),
         parse_mode="Markdown",
     )
 
@@ -344,8 +334,10 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["beklenen_admin_islem"] = "duyuru"
     await query.answer()
     await query.edit_message_text(
-        "📢 Lütfen kullanıcılara göndermek istediğiniz duyuru mesajını **sohbete yazı olarak gönderin:**",
-        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 İptal", callback_data="ana_menu")]]),
+        "📢 Göndermek istediğin duyuru metnini sohbete yaz:",
+        reply_markup=InlineKeyboardMarkup(
+            [[InlineKeyboardButton("🔙 İptal", callback_data="ana_menu")]]
+        ),
     )
 
   elif query.data == "join_giveaway":
@@ -353,11 +345,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
       if user_id_str not in DB_DATA["giveaway"]["participants"]:
         DB_DATA["giveaway"]["participants"].append(user_id_str)
         veri_kaydet()
-        await query.answer("✅ Çekilişe başarıyla katıldın!", show_alert=True)
+        await query.answer("✅ Çekilişe katıldın!", show_alert=True)
       else:
-        await query.answer("⚠️ Zaten bu çekilişe katılmış durumdasın.", show_alert=True)
+        await query.answer("⚠️ Zaten katılmıştın.", show_alert=True)
     else:
-      await query.answer("❌ Şu anda aktif bir çekiliş bulunmuyor.", show_alert=True)
+      await query.answer("❌ Aktif çekiliş yok.", show_alert=True)
     return
 
   elif query.data == "h_art":
@@ -415,12 +407,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if user_data["carpipuan"] < gerekli_puan:
       await query.answer(
-          "❌ Yetersiz carpipuan! "
-          + str(gerekli_puan)
-          + " puan lazım. (Mevcut: +"
-          + str(user_data["carpipuan"])
-          + ")",
-          show_alert=True,
+          "❌ Yetersiz puan! Lazım: " + str(gerekli_puan), show_alert=True
       )
       return
 
@@ -429,9 +416,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         DB_DATA["waitlist"].append(user_id_str)
         veri_kaydet()
       await query.answer(
-          "⚠️ Stoklar tükenmiştir! Otomatik bekleme listesine (Waitlist)"
-          " eklendin. Stok gelince haber verilecek.",
-          show_alert=True,
+          "⚠️ Stok kalmadı, bekleme listesine eklendin.", show_alert=True
       )
       return
 
@@ -439,23 +424,18 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if verilenler:
       await query.answer()
       cashback = int(gerekli_puan * 0.10)
-      user_data["carpipuan"] = round(user_data["carpipuan"] - gerekli_puan + cashback, 1)
-      user_data["spent"] = user_data.get("spent", 0) + int(gerekli_puan)
+      user_data["carpipuan"] = round(
+          user_data["carpipuan"] - gerekli_puan + cashback, 1
+      )
       veri_kaydet()
-      
+
       hesaplar_metni = "\n".join([f"`{h}`" for h in verilenler])
-      keyboard = [[InlineKeyboardButton("🔙 Ana Menü", callback_data="ana_menu")]]
+      keyboard = [[InlineKeyboardButton("🔙 Menü", callback_data="ana_menu")]]
       try:
         await query.edit_message_text(
-            "✅ "
-            + str(adet)
-            + " Adet VIP FULL+FULL HESAP Başarıyla Verildi! (-"
-            + str(gerekli_puan)
-            + " Puan)\n\n✨ **Cashback İadesi:** +"
-            + str(cashback)
-            + " Puan hesabına geri yüklendi!\n\n🔑 Bilgiler:\n"
+            "✅ VIP Hesaplar Verildi!\n\n🔑 Bilgiler:\n"
             + hesaplar_metni
-            + "\n\n💰 Kalan Puanın: +"
+            + "\n\n💰 Kalan Puan: +"
             + str(user_data["carpipuan"]),
             reply_markup=InlineKeyboardMarkup(keyboard),
             parse_mode="Markdown",
@@ -463,26 +443,16 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
       except Exception:
         await context.bot.send_message(
             chat_id=user_id,
-            text="✅ "
-            + str(adet)
-            + " Adet VIP FULL+FULL HESAP Başarıyla Verildi! (-"
-            + str(gerekli_puan)
-            + " Puan)\n\n🔑 Bilgiler:\n"
-            + hesaplar_metni
-            + "\n\n💰 Kalan Puanın: +"
-            + str(user_data["carpipuan"]),
+            text="✅ VIP Hesaplar Verildi:\n\n" + hesaplar_metni,
             parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup(keyboard),
         )
     else:
-      await query.answer("❌ Stok hatası oluştu!", show_alert=True)
+      await query.answer("❌ Stok hatası!", show_alert=True)
 
   elif query.data == "sifre_baslat":
     await query.answer()
     if user_data.get("sifre_oyunu_kullanildi", False):
-      await query.answer(
-          "❌ Bu şifre çözme hakkını zaten kullandın reis!", show_alert=True
-      )
+      await query.answer("❌ Hakkını zaten kullandın!", show_alert=True)
       return
 
     user_data["sifre_oyunu_kullanildi"] = True
@@ -496,11 +466,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await context.bot.send_invoice(
         chat_id=user_id,
-        title="🔐 6 Haneli Şifre Çözme Oyunu",
-        description="3 Yıldız öde, şifreyi al ve sohbete yazarak çöz!",
+        title="🔐 Şifre Çözme Oyunu",
+        description="3 Yıldız öde, şifreyi al ve sohbete yaz!",
         payload="sifre_oyunu_3_yildiz",
         currency="XTR",
-        prices=[LabeledPrice("Şifre Çözme Hakkı", 3)],
+        prices=[LabeledPrice("Şifre Hakkı", 3)],
     )
 
   elif query.data == "promo":
@@ -515,40 +485,34 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
       user_data["carpipuan"] = round(user_data["carpipuan"] + kazanilan_odul, 1)
       veri_kaydet()
 
-      keyboard = [[InlineKeyboardButton("🔙 Ana Menü", callback_data="ana_menu")]]
+      keyboard = [[InlineKeyboardButton("🔙 Menü", callback_data="ana_menu")]]
       await query.edit_message_text(
-          "🎁 Sana Özel Promo Kodu Üretildi!\n\n🔑 Kodun: `"
+          "🎁 Kodun: `"
           + rastgele_kod
-          + "`\n✨ Hediyen Hesaba Eklendi: **+"
+          + "`\n✨ Eklenen Puan: **+"
           + str(kazanilan_odul)
-          + " Puan**\n💰 Toplam Puanın: +"
-          + str(user_data["carpipuan"]),
+          + "**",
           reply_markup=InlineKeyboardMarkup(keyboard),
           parse_mode="Markdown",
       )
     else:
-      await query.answer(
-          "❌ Sen bu promosyon hakkını zaten kullandın reis!", show_alert=True
-      )
+      await query.answer("❌ Zaten aldın!", show_alert=True)
 
   elif query.data == "y_al":
     await query.answer()
     adet = user_data.get("yildiz_hesap_adet", 1)
     toplam_fiyat = adet * 50
     if stok_adet < adet:
-      await query.answer("❌ Stokta o kadar hesap yok reis!", show_alert=True)
+      await query.answer("❌ Stok yetersiz!", show_alert=True)
       return
 
     await context.bot.send_invoice(
         chat_id=user_id,
-        title="⭐ Yıldız ile " + str(adet) + " Adet Hesap Al",
-        description=str(adet)
-        + " Adet VIP FULL+FULL HESAP ("
-        + str(toplam_fiyat)
-        + " Yıldız)",
+        title="⭐ " + str(adet) + " Adet VIP Hesap Al",
+        description=str(adet) + " Adet VIP Hesap (" + str(toplam_fiyat) + " Yıldız)",
         payload="hesap_coklu_" + str(adet),
         currency="XTR",
-        prices=[LabeledPrice(str(adet) + " Adet Hesap", toplam_fiyat)],
+        prices=[LabeledPrice(str(adet) + " Adet VIP Hesap", toplam_fiyat)],
     )
 
   elif query.data == "puan_menu":
@@ -565,27 +529,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "⭐ 500 Yıldız ➔ 700 Puan", callback_data="p_yildiz_500"
             )
         ],
-        [
-            InlineKeyboardButton(
-                "⭐ 1000 Yıldız ➔ 1.500 Puan", callback_data="p_yildiz_1000"
-            )
-        ],
-        [
-            InlineKeyboardButton(
-                "⭐ 2500 Yıldız ➔ 4.000 Puan", callback_data="p_yildiz_2500"
-            )
-        ],
-        [
-            InlineKeyboardButton(
-                "⭐ 10000 Yıldız ➔ 20.000 Puan", callback_data="p_yildiz_10000"
-            )
-        ],
-        [
-            InlineKeyboardButton(
-                "⭐ 20000 Yıldız ➔ 40.000 Puan", callback_data="p_yildiz_20000"
-            )
-        ],
-        [InlineKeyboardButton("🔙 Ana Menü", callback_data="ana_menu")],
+        [InlineKeyboardButton("🔙 Menü", callback_data="ana_menu")],
     ]
     await query.edit_message_reply_markup(
         reply_markup=InlineKeyboardMarkup(keyboard)
@@ -594,44 +538,28 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
   elif query.data.startswith("p_yildiz_"):
     await query.answer()
     yildiz_miktari = int(query.data.split("_")[2])
-    puan_tablosu = {
-        50: 50,
-        100: 120,
-        500: 700,
-        1000: 1500,
-        2500: 4000,
-        10000: 20000,
-        20000: 40000,
-    }
+    puan_tablosu = {50: 50, 100: 120, 500: 700}
     kazanilacak_puan = puan_tablosu.get(yildiz_miktari, 50)
 
     await context.bot.send_invoice(
         chat_id=user_id,
-        title="⭐ "
-        + str(yildiz_miktari)
-        + " Yıldız ile "
-        + str(kazanilacak_puan)
-        + " Puan Al",
-        description="Ödenen "
-        + str(yildiz_miktari)
+        title="⭐ Puan Yükleme",
+        description=str(yildiz_miktari)
         + " Yıldız karşılığı "
         + str(kazanilacak_puan)
-        + " Carpipuan yüklemesi",
-        payload="puan_yukle_"
-        + str(yildiz_miktari)
-        + "_"
-        + str(kazanilacak_puan),
+        + " Puan",
+        payload="puan_yukle_" + str(yildiz_miktari) + "_" + str(kazanilacak_puan),
         currency="XTR",
-        prices=[LabeledPrice(str(yildiz_miktari) + " Yıldız Paketi", yildiz_miktari)],
+        prices=[LabeledPrice("Puan Paketi", yildiz_miktari)],
     )
 
   elif query.data == "gunluk":
     await query.answer()
     simdi = time.time()
     if simdi - user_data["son_gunluk"] < 86400:
-      keyboard = [[InlineKeyboardButton("🔙 Ana Menü", callback_data="ana_menu")]]
+      keyboard = [[InlineKeyboardButton("🔙 Menü", callback_data="ana_menu")]]
       await query.edit_message_text(
-          "⏳ Günlük ödülünü zaten almışsın reis, yarın tekrar gel!",
+          "⏳ Günlük ödülü zaten aldın!",
           reply_markup=InlineKeyboardMarkup(keyboard),
       )
       return
@@ -641,16 +569,100 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_data["carpipuan"] = round(user_data["carpipuan"] + kazanilan, 1)
     veri_kaydet()
 
-    keyboard = [[InlineKeyboardButton("🔙 Ana Menü", callback_data="ana_menu")]]
+    keyboard = [[InlineKeyboardButton("🔙 Menü", callback_data="ana_menu")]]
     await query.edit_message_text(
-        "🎁 Günlük Ödül: **+"
-        + str(kazanilan)
-        + " Puan** eklendi!\n💰 Toplam: +"
-        + str(user_data["carpipuan"]),
+        "🎁 Günlük Ödül: **+" + str(kazanilan) + " Puan**",
         reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode="Markdown",
     )
 
   elif query.data == "davet":
     await query.answer()
-    davet_linki = "https://t.me/" + BO
+    davet_linki = "https://t.me/" + BOT_USERNAME + "?start=ref_" + str(user_id)
+    davet_sayisi = user_data.get("davet_sayisi", 0)
+
+    keyboard = [[InlineKeyboardButton("🔙 Menü", callback_data="ana_menu")]]
+    await query.edit_message_text(
+        "👥 **Davet Et Kazan!**\n\nLinkin:\n`"
+        + davet_linki
+        + "`\n\nDavet Edilen: **"
+        + str(davet_sayisi)
+        + "**",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+        parse_mode="Markdown",
+    )
+
+  elif query.data == "liderlik":
+    await query.answer()
+    sirali = sorted(
+        KULLANICILAR.items(), key=lambda x: x[1]["carpipuan"], reverse=True
+    )[:10]
+    metin = "🏆 **Liderlik Tablosu**\n\n"
+    for sira, (uid, udata) in enumerate(sirali, 1):
+      metin += str(sira) + ". Puan: **+" + str(udata["carpipuan"]) + "**\n"
+
+    keyboard = [[InlineKeyboardButton("🔙 Menü", callback_data="ana_menu")]]
+    await query.edit_message_text(
+        metin, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown"
+    )
+
+  elif query.data == "profil":
+    await query.answer()
+    keyboard = [[InlineKeyboardButton("🔙 Menü", callback_data="ana_menu")]]
+    davet_sayisi = user_data.get("davet_sayisi", 0)
+    await query.edit_message_text(
+        "👤 **Profilin:**\n\nID: `"
+        + str(user_id)
+        + "`\nPuan: `+"
+        + str(user_data["carpipuan"])
+        + "`\nDavet: **"
+        + str(davet_sayisi)
+        + "**",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+        parse_mode="Markdown",
+    )
+
+  elif query.data == "ana_menu":
+    await query.answer()
+    try:
+      await query.edit_message_text(
+          "🚀 CPM1 Hesap Mağazasına Hoş Geldin!\n\n📦 Stok: "
+          + str(stok_adet)
+          + "\nPuanın: +"
+          + str(user_data["carpipuan"]),
+          reply_markup=get_ana_menu_keyboard(stok_adet, user_data),
+          parse_mode="Markdown",
+      )
+    except Exception:
+      pass
+
+
+async def pre_checkout_callback(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+):
+  query = update.pre_checkout_query
+  await query.answer(ok=True)
+
+
+async def successful_payment_callback(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+):
+  payment = update.message.successful_payment
+  payload = payment.invoice_payload
+  user_id_str = str(update.effective_user.id)
+  user_id = update.effective_user.id
+
+  if user_id_str not in KULLANICILAR:
+    KULLANICILAR[user_id_str] = {
+        "carpipuan": 0.0,
+        "son_gunluk": 0,
+        "davet_edildi": False,
+        "davet_sayisi": 0,
+        "hesap_adet": 1,
+        "yildiz_hesap_adet": 1,
+        "promo_alindi": False,
+        "sifre_oyunu_kullanildi": True,
+        "beklenen_sifre": None,
+        "spent": 0,
+    }
+  user
