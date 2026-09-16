@@ -103,12 +103,15 @@ def get_ana_menu_keyboard(stok_adet, user_data=None):
       ],
   ]
 
-  if user_data and not user_data.get("kod_alindi", False):
-    keyboard.append([
-        InlineKeyboardButton(
-            "🎁 Sana Özel Promosyon Kodumu Al", callback_data="ozel_kod_al"
-        )
-    ])
+  # Eğer kullanıcı henüz kod almadıysa VEYA kodunu oluşturup henüz kullanmadıysa butonu gösterelim mi?
+  # İstediğin gibi: Kod bir kez kullanılıp tüketilince bu buton tamamen hayatından çıkacak.
+  if user_data and not user_data.get("kod_tuketildi", False):
+    if not user_data.get("hediye_kodu"):
+      keyboard.append([
+          InlineKeyboardButton(
+              "🎁 Sana Özel Promosyon Kodumu Al", callback_data="ozel_kod_al"
+          )
+      ])
 
   keyboard.append(
       [InlineKeyboardButton("👤 Profilim & Bilgilerim", callback_data="profil")]
@@ -129,7 +132,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "son_gunluk": 0,
         "davet_edildi": False,
         "hediye_kodu": None,
-        "kod_alindi": False,
+        "kod_tuketildi": False,
         "kod_bekleniyor": False,
     }
 
@@ -179,7 +182,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "carpipuan": float(random.choice([0.0, 0.5, 0.8, 1.0, 2.0])),
         "son_gunluk": 0,
         "hediye_kodu": None,
-        "kod_alindi": False,
+        "kod_tuketildi": False,
         "kod_bekleniyor": False,
     }
   user_data = KULLANICILAR[user_id]
@@ -379,7 +382,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not user_data["hediye_kodu"]:
       user_data["hediye_kodu"] = benzersiz_alti_hane_uret()
 
-    user_data["kod_alindi"] = True
     keyboard = [
         [InlineKeyboardButton("🔙 Ana Menüye Dön", callback_data="ana_menu")]
     ]
@@ -397,7 +399,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
   elif query.data == "promo_gir_menu":
     if not user_data["hediye_kodu"]:
       user_data["hediye_kodu"] = benzersiz_alti_hane_uret()
-      user_data["kod_alindi"] = True
 
     user_data["kod_bekleniyor"] = True
     keyboard = [
@@ -461,7 +462,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "👥 Arkadaşını Davet Et & carpipuan Kazan!\n\n"
         "Davet ettiğin her arkadaşın başına hesabına **+5 carpipuan**"
         f" eklenir.\n\n🔗 Kişisel Davet Linkin:\n`{ref_link}`",
-        reply_markup=reply_markup,
         parse_mode="Markdown",
     )
 
@@ -484,7 +484,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🏆 carpipuan: {user_data['carpipuan']}\n"
         f"📦 Mağaza Stok: {stok_adet} adet\n\n"
         f"🔗 Davet Linkin:\n`{ref_link}`",
-        reply_markup=reply_markup,
         parse_mode="Markdown",
     )
 
@@ -518,7 +517,7 @@ async def successful_payment_handler(
         "carpipuan": 1.0,
         "son_gunluk": 0,
         "hediye_kodu": None,
-        "kod_alindi": False,
+        "kod_tuketildi": False,
         "kod_bekleniyor": False,
     }
 
@@ -562,7 +561,7 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "carpipuan": 1.0,
         "son_gunluk": 0,
         "hediye_kodu": None,
-        "kod_alindi": False,
+        "kod_tuketildi": False,
         "kod_bekleniyor": False,
     }
 
@@ -570,6 +569,14 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
   if user_data.get("kod_bekleniyor", False):
     user_data["kod_bekleniyor"] = False
+
+    # Eğer daha önce kod tüketildiyse bir daha giremez
+    if user_data.get("kod_tuketildi", False):
+      await update.message.reply_text(
+          "❌ Sen zaten kendi promosyon kodunu kullanıp ödülünü"
+          " aldın reis! İkinci kez kullanamazsın."
+      )
+      return
 
     # Eğer kullanıcının henüz kodu yoksa oluştur
     if not user_data["hediye_kodu"]:
@@ -595,6 +602,7 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     kazanilan_puan = random.choice(mumkun_puanlar)
 
     KULLANILAN_KODLAR.add(text)
+    user_data["kod_tuketildi"] = True  # Kod kalıcı olarak kilitlendi/tüketildi
     user_data["carpipuan"] = round(
         min(40000.0, user_data["carpipuan"] + kazanilan_puan), 1
     )
@@ -622,21 +630,4 @@ def main():
   application.add_handler(CommandHandler("start", start))
   application.add_handler(CallbackQueryHandler(button_handler))
   application.add_handler(PreCheckoutQueryHandler(pre_checkout_handler))
-  application.add_handler(
-      MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment_handler)
-  )
-  application.add_handler(
-      MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler)
-  )
-
-  print("Bot Güncellendi: Kullanıcı Kendi Kodunu Girip 5 Puana Kadar Ödül Alabiliyor!")
-  application.run_polling()
-
-
-if __name__ == "__main__":
-  t = threading.Thread(target=run_web)
-  t.daemon = True
-  t.start()
-
-  main()
-      
+  appli
