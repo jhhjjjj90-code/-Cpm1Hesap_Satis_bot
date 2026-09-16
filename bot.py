@@ -53,28 +53,45 @@ def stok_dusur_ve_ver(adet=1):
 
 
 def get_ana_menu_keyboard(stok_adet, user_data=None):
+  secilen_adet = user_data.get("hesap_adet", 1) if user_data else 1
+  toplam_puan = secilen_adet * 15
+
   yildiz_adet = user_data.get("yildiz_hesap_adet", 1) if user_data else 1
   toplam_yildiz = yildiz_adet * 15
 
   keyboard = [
       [
-          InlineKeyboardButton("➖", callback_data="yildiz_adet_azalt"),
+          InlineKeyboardButton("➖", callback_data="h_az"),
+          InlineKeyboardButton(
+              f"📦 {secilen_adet} Adet Hesap ({toplam_puan} carpipuan)",
+              callback_data="bos_bilgi",
+          ),
+          InlineKeyboardButton("➕", callback_data="h_art"),
+      ],
+      [
+          InlineKeyboardButton(
+              f"💳 Seçilenleri carpipuan ile Al ({toplam_puan} Puan)",
+              callback_data="hp_al",
+          )
+      ],
+      [
+          InlineKeyboardButton("➖", callback_data="y_az"),
           InlineKeyboardButton(
               f"⭐ {yildiz_adet} Adet Hesap ({toplam_yildiz} Yıldız)",
               callback_data="bos_bilgi",
           ),
-          InlineKeyboardButton("➕", callback_data="yildiz_adet_artir"),
+          InlineKeyboardButton("➕", callback_data="y_art"),
       ],
       [
           InlineKeyboardButton(
               f"⭐ Seçilenleri Yıldız ile Al ({toplam_yildiz} Yıldız)",
-              callback_data="yildiz_coklu_hesap_al",
+              callback_data="y_al",
           )
       ],
       [
           InlineKeyboardButton(
               "⭐ Yıldız ile carpipuan Al (Dengeli Paketler)",
-              callback_data="yildiz_puan_menu",
+              callback_data="puan_menu",
           )
       ],
   ]
@@ -82,33 +99,21 @@ def get_ana_menu_keyboard(stok_adet, user_data=None):
   if user_data and not user_data.get("sifre_oyunu_kullanildi", False):
     keyboard.append([
         InlineKeyboardButton(
-            "🔐 Şifreyi Çöz & Ödülü Kap (3 Yıldız)",
-            callback_data="sifre_oyunu_baslat",
+            "🔐 Şifreyi Çöz & Ödülü Kap (3 Yıldız)", callback_data="sifre_baslat"
         )
     ])
 
   if user_data and not user_data.get("promo_alindi", False):
     keyboard.append([
-        InlineKeyboardButton(
-            "🎁 Bana Özel Promo Kodu Üret", callback_data="ozel_promo_uret"
-        )
+        InlineKeyboardButton("🎁 Bana Özel Promo Kodu Üret", callback_data="promo")
     ])
 
   keyboard.extend([
+      [InlineKeyboardButton("🎁 Günlük Ödül Al (0.3 - 2 Puan)", callback_data="gunluk")],
+      [InlineKeyboardButton("🏆 En İyiler (Liderlik)", callback_data="liderlik")],
       [
           InlineKeyboardButton(
-              "🎁 Günlük Ödül Al (0.3 - 2 Puan)", callback_data="gunluk_odul"
-          )
-      ],
-      [
-          InlineKeyboardButton(
-              "🏆 En İyiler (Liderlik)", callback_data="liderlik"
-          )
-      ],
-      [
-          InlineKeyboardButton(
-              "👥 Arkadaşını Davet Et (+5 carpipuan)",
-              callback_data="davet_et",
+              "👥 Arkadaşını Davet Et (+5 carpipuan)", callback_data="davet"
           )
       ],
       [InlineKeyboardButton("👤 Profilim & Bilgilerim", callback_data="profil")],
@@ -127,12 +132,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "son_gunluk": 0,
         "davet_edildi": False,
         "davet_sayisi": 0,
+        "hesap_adet": 1,
         "yildiz_hesap_adet": 1,
         "promo_alindi": False,
         "sifre_oyunu_kullanildi": False,
         "beklenen_sifre": None,
     }
-    # Referans kontrolü
     if args and args[0].startswith("ref_"):
       try:
         ref_id = int(args[0].split("_")[1])
@@ -186,6 +191,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "son_gunluk": 0,
         "davet_edildi": False,
         "davet_sayisi": 0,
+        "hesap_adet": 1,
         "yildiz_hesap_adet": 1,
         "promo_alindi": False,
         "sifre_oyunu_kullanildi": False,
@@ -197,7 +203,27 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
   if query.data == "bos_bilgi":
     return
 
-  elif query.data == "yildiz_adet_artir":
+  elif query.data == "h_art":
+    if user_data["hesap_adet"] < max(1, stok_adet):
+      user_data["hesap_adet"] += 1
+    try:
+      await query.edit_message_reply_markup(
+          reply_markup=get_ana_menu_keyboard(stok_adet, user_data)
+      )
+    except Exception:
+      pass
+
+  elif query.data == "h_az":
+    if user_data["hesap_adet"] > 1:
+      user_data["hesap_adet"] -= 1
+    try:
+      await query.edit_message_reply_markup(
+          reply_markup=get_ana_menu_keyboard(stok_adet, user_data)
+      )
+    except Exception:
+      pass
+
+  elif query.data == "y_art":
     if user_data["yildiz_hesap_adet"] < max(1, stok_adet):
       user_data["yildiz_hesap_adet"] += 1
     try:
@@ -207,7 +233,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception:
       pass
 
-  elif query.data == "yildiz_adet_azalt":
+  elif query.data == "y_az":
     if user_data["yildiz_hesap_adet"] > 1:
       user_data["yildiz_hesap_adet"] -= 1
     try:
@@ -217,7 +243,33 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception:
       pass
 
-  elif query.data == "sifre_oyunu_baslat":
+  elif query.data == "hp_al":
+    adet = user_data.get("hesap_adet", 1)
+    gerekli_puan = adet * 15.0
+
+    if user_data["carpipuan"] < gerekli_puan:
+      await query.answer(
+          f"❌ Yetersiz carpipuan! {gerekli_puan} puan lazım.", show_alert=True
+      )
+      return
+    if stok_adet < adet:
+      await query.answer("❌ Stokta o kadar hesap yok reis!", show_alert=True)
+      return
+
+    verilenler = stok_dusur_ve_ver(adet)
+    if verilenler:
+      user_data["carpipuan"] = round(user_data["carpipuan"] - gerekli_puan, 1)
+      hesaplar_metni = "\n".join([f"`{h}`" for h in verilenler])
+      keyboard = [[InlineKeyboardButton("🔙 Ana Menü", callback_data="ana_menu")]]
+      await query.edit_message_text(
+          f"✅ {adet} Adet Hesap Başarıyla Verildi! (-{gerekli_puan}"
+          f" Puan)\n\n🔑 Bilgiler:\n{hesaplar_metni}\n\n💰 Kalan Puanın:"
+          f" +{user_data['carpipuan']}",
+          reply_markup=InlineKeyboardMarkup(keyboard),
+          parse_mode="Markdown",
+      )
+
+  elif query.data == "sifre_baslat":
     if user_data.get("sifre_oyunu_kullanildi", False):
       await query.answer(
           "❌ Bu şifre çözme hakkını zaten kullandın reis!", show_alert=True
@@ -241,22 +293,17 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         prices=[LabeledPrice("Şifre Çözme Hakkı", 3)],
     )
 
-  elif query.data == "ozel_promo_uret":
+  elif query.data == "promo":
     if not user_data["promo_alindi"]:
-      rastgele_kod = (
-          "CPM-"
-          + "".join(
-              random.choices(string.ascii_uppercase + string.digits, k=6)
-          )
+      rastgele_kod = "CPM-" + "".join(
+          random.choices(string.ascii_uppercase + string.digits, k=6)
       )
       kazanilan_odul = round(random.uniform(1.0, 5.0), 1)
 
       user_data["promo_alindi"] = True
       user_data["carpipuan"] = round(user_data["carpipuan"] + kazanilan_odul, 1)
 
-      keyboard = [
-          [InlineKeyboardButton("🔙 Ana Menü", callback_data="ana_menu")]
-      ]
+      keyboard = [[InlineKeyboardButton("🔙 Ana Menü", callback_data="ana_menu")]]
       await query.edit_message_text(
           f"🎁 Sana Özel Promo Kodu Üretildi!\n\n🔑 Kodun: `{rastgele_kod}`\n✨"
           f" Hediyen Hesaba Eklendi: **+{kazanilan_odul} Puan**\n💰 Toplam"
@@ -269,7 +316,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
           "❌ Sen bu promosyon hakkını zaten kullandın reis!", show_alert=True
       )
 
-  elif query.data == "yildiz_coklu_hesap_al":
+  elif query.data == "y_al":
     adet = user_data.get("yildiz_hesap_adet", 1)
     toplam_fiyat = adet * 15
     if stok_adet < adet:
@@ -285,13 +332,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         prices=[LabeledPrice(f"{adet} Adet Hesap", toplam_fiyat)],
     )
 
-  elif query.data == "yildiz_puan_menu":
+  elif query.data == "puan_menu":
     keyboard = [
-        [
-            InlineKeyboardButton(
-                "⭐ 50 Yıldız ➔ 50 Puan", callback_data="p_yildiz_50"
-            )
-        ],
+        [InlineKeyboardButton("⭐ 50 Yıldız ➔ 50 Puan", callback_data="p_yildiz_50")],
         [
             InlineKeyboardButton(
                 "⭐ 100 Yıldız ➔ 120 Puan", callback_data="p_yildiz_100"
@@ -350,12 +393,10 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         prices=[LabeledPrice(f"{yildiz_miktari} Yıldız Paketi", yildiz_miktari)],
     )
 
-  elif query.data == "gunluk_odul":
+  elif query.data == "gunluk":
     simdi = time.time()
     if simdi - user_data["son_gunluk"] < 86400:
-      keyboard = [
-          [InlineKeyboardButton("🔙 Ana Menü", callback_data="ana_menu")]
-      ]
+      keyboard = [[InlineKeyboardButton("🔙 Ana Menü", callback_data="ana_menu")]]
       await query.edit_message_text(
           "⏳ Günlük ödülünü zaten almışsın reis, yarın tekrar gel!",
           reply_markup=InlineKeyboardMarkup(keyboard),
@@ -366,9 +407,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     kazanilan = round(random.uniform(0.3, 2.0), 1)
     user_data["carpipuan"] = round(user_data["carpipuan"] + kazanilan, 1)
 
-    keyboard = [
-        [InlineKeyboardButton("🔙 Ana Menü", callback_data="ana_menu")]
-    ]
+    keyboard = [[InlineKeyboardButton("🔙 Ana Menü", callback_data="ana_menu")]]
     await query.edit_message_text(
         f"🎁 Günlük Ödül: **+{kazanilan} Puan** eklendi!\n💰 Toplam:"
         f" +{user_data['carpipuan']}",
@@ -376,14 +415,12 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown",
     )
 
-  elif query.data == "davet_et":
+  elif query.data == "davet":
     bot_username = context.bot_data.get("username", "BotKullaniciAdin")
     davet_linki = f"https://t.me/{bot_username}?start=ref_{user_id}"
     davet_sayisi = user_data.get("davet_sayisi", 0)
 
-    keyboard = [
-        [InlineKeyboardButton("🔙 Ana Menü", callback_data="ana_menu")]
-    ]
+    keyboard = [[InlineKeyboardButton("🔙 Ana Menü", callback_data="ana_menu")]]
     await query.edit_message_text(
         "👥 **Arkadaşını Davet Et Kazan!**\n\n"
         "Aşağıdaki sana özel davet linkini arkadaşlarınla paylaş. "
@@ -402,17 +439,13 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for sira, (uid, udata) in enumerate(sirali, 1):
       metin += f"{sira}. Kullanıcı: **+{udata['carpipuan']}** Puan\n"
 
-    keyboard = [
-        [InlineKeyboardButton("🔙 Ana Menü", callback_data="ana_menu")]
-    ]
+    keyboard = [[InlineKeyboardButton("🔙 Ana Menü", callback_data="ana_menu")]]
     await query.edit_message_text(
         metin, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown"
     )
 
   elif query.data == "profil":
-    keyboard = [
-        [InlineKeyboardButton("🔙 Ana Menü", callback_data="ana_menu")]
-    ]
+    keyboard = [[InlineKeyboardButton("🔙 Ana Menü", callback_data="ana_menu")]]
     davet_sayisi = user_data.get("davet_sayisi", 0)
     await query.edit_message_text(
         f"👤 **Profilin & Bilgilerin:**\n\n"
@@ -458,6 +491,7 @@ async def successful_payment_callback(
         "son_gunluk": 0,
         "davet_edildi": False,
         "davet_sayisi": 0,
+        "hesap_adet": 1,
         "yildiz_hesap_adet": 1,
         "promo_alindi": False,
         "sifre_oyunu_kullanildi": True,
@@ -552,4 +586,4 @@ if __name__ == "__main__":
   t.daemon = True
   t.start()
   main()
-              
+        
