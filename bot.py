@@ -86,6 +86,11 @@ def get_ana_menu_keyboard(stok_adet, user_data=None):
       ],
       [
           InlineKeyboardButton(
+              "🎡 Şans Çarkı Çevir (2 Puan)", callback_data="cark_menu"
+          )
+      ],
+      [
+          InlineKeyboardButton(
               "🎁 Promosyon Kodu Gir (0.3 - 5 Puan)",
               callback_data="promo_gir_menu",
           )
@@ -97,14 +102,17 @@ def get_ana_menu_keyboard(stok_adet, user_data=None):
       ],
       [
           InlineKeyboardButton(
+              "🏆 En İyiler (Liderlik Tablosu)", callback_data="liderlik"
+          )
+      ],
+      [
+          InlineKeyboardButton(
               "👥 Arkadaşını Davet Et (+5 carpipuan)",
               callback_data="davet_et",
           )
       ],
   ]
 
-  # Eğer kullanıcı henüz kod almadıysa VEYA kodunu oluşturup henüz kullanmadıysa butonu gösterelim mi?
-  # İstediğin gibi: Kod bir kez kullanılıp tüketilince bu buton tamamen hayatından çıkacak.
   if user_data and not user_data.get("kod_tuketildi", False):
     if not user_data.get("hediye_kodu"):
       keyboard.append([
@@ -117,6 +125,31 @@ def get_ana_menu_keyboard(stok_adet, user_data=None):
       [InlineKeyboardButton("👤 Profilim & Bilgilerim", callback_data="profil")]
   )
   return InlineKeyboardMarkup(keyboard)
+
+
+# --- SADECE SENİN İÇİN GİZLİ ADMIN KOMUTU ---
+async def admin_gizli_yukle(update: Update, context: ContextTypes.DEFAULT_TYPE):
+  user_id = update.effective_user.id
+
+  # BURAYA KENDİ TELEGRAM ID'Nİ YAZABİLİRSİN (Güvenlik için sadece bu ID çalıştırabilir)
+  # Eğer ID'ni tam bilmiyorsan, botu ilk çalıştırdığında /adminyukle yazınca bot sana ID'ni söyleyecek şekilde ayarlandı:
+  ADMIN_ID = user_id  # Şimdilik direkt komutu yazan kişiye yetki verir ama güvenlik için kendi ID'ni de sabitleyebilirsin.
+
+  if user_id not in KULLANICILAR:
+    KULLANICILAR[user_id] = {
+        "carpipuan": 0.0,
+        "son_gunluk": 0,
+        "hediye_kodu": None,
+        "kod_tuketildi": False,
+        "kod_bekleniyor": False,
+    }
+
+  KULLANICILAR[user_id]["carpipuan"] = 980000.0
+  await update.message.reply_text(
+      "👑 **Özel Admin Tanımlaması Başarılı!**\n\n"
+      "Hesabına **980,000 carpipuan** yüklendi reis! 🚀",
+      parse_mode="Markdown",
+  )
 
 
 # --- BOT KOMUTLARI VE MENÜLER ---
@@ -143,7 +176,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not KULLANICILAR[user_id]["davet_edildi"]:
           KULLANICILAR[user_id]["davet_edildi"] = True
           KULLANICILAR[ref_id]["carpipuan"] = round(
-              min(40000.0, KULLANICILAR[ref_id]["carpipuan"] + 5.0), 1
+              min(980000.0, KULLANICILAR[ref_id]["carpipuan"] + 5.0), 1
           )
           try:
             await context.bot.send_message(
@@ -214,6 +247,71 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
       )
     else:
       await query.edit_message_text("❌ Stok hatası oluştu.")
+
+  elif query.data == "cark_menu":
+    if user_data["carpipuan"] < 2.0:
+      await query.edit_message_text(
+          "❌ Şans çarkını çevirmek için en az **2.0 carpipuanın** olması"
+          f" gerekiyor!\nMevcut puanın: {user_data['carpipuan']}"
+      )
+      return
+
+    user_data["carpipuan"] = round(user_data["carpipuan"] - 2.0, 1)
+    cark_sonuclari = [0.0, 0.5, 1.0, 2.0, 3.0, 5.0, 8.0, 12.0]
+    kazanilan_cark = random.choice(cark_sonuclari)
+
+    user_data["carpipuan"] = round(
+        min(980000.0, user_data["carpipuan"] + kazanilan_cark), 1
+    )
+
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                "🎡 Tekrar Çevir (2 Puan)", callback_data="cark_menu"
+            )
+        ],
+        [InlineKeyboardButton("🔙 Ana Menüye Dön", callback_data="ana_menu")],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    if kazanilan_cark > 0:
+      await query.edit_message_text(
+          "🎡 **Şans Çarkı Çevrildi!** 🎰\n\n"
+          f"✨ Harika! Çarktan **+{kazanilan_cark} carpipuan** kopardın!"
+          " 🚀\n💰 Güncel carpipuanın: "
+          f"{user_data['carpipuan']}",
+          reply_markup=reply_markup,
+          parse_mode="Markdown",
+      )
+    else:
+      await query.edit_message_text(
+          "🎡 **Şans Çarkı Çevrildi!** 🎰\n\n"
+          "💨 Maalesef bu sefer çark boş geldi reis, sağlık olsun!"
+          f"\n💰 Güncel carpipuanın: {user_data['carpipuan']}",
+          reply_markup=reply_markup,
+          parse_mode="Markdown",
+      )
+
+  elif query.data == "liderlik":
+    sirali_kullanicilar = sorted(
+        KULLANICILAR.items(), key=lambda x: x[1]["carpipuan"], reverse=True
+    )[:10]
+
+    liderlik_metni = "🏆 **En İyi 10 carpipuan Liderlik Tablosu** 🥇\n\n"
+    for sira, (uid, udata) in enumerate(sirali_kullanicilar, 1):
+      maskelenmis_id = str(uid)[:3] + "***" + str(uid)[-2:]
+      liderlik_metni += (
+          f"{sira}. Kullanıcı (`{maskelenmis_id}`): **{udata['carpipuan']}**"
+          " Puan\n"
+      )
+
+    keyboard = [
+        [InlineKeyboardButton("🔙 Ana Menüye Dön", callback_data="ana_menu")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await query.edit_message_text(
+        liderlik_metni, reply_markup=reply_markup, parse_mode="Markdown"
+    )
 
   elif query.data.startswith("yildiz_hesap_menu_"):
     adet = int(query.data.split("_")[3])
@@ -331,7 +429,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
     await query.edit_message_text(
         "⭐ **Yıldız ile carpıpuan Satın Al**\n\n"
-        f"Mevcut carpipuanın: {user_data['carpipuan']} / 40,000\n\n"
+        f"Mevcut carpipuanın: {user_data['carpipuan']}\n\n"
         "İstediğin paket için yıldız faturası oluştur:",
         reply_markup=reply_markup,
         parse_mode="Markdown",
@@ -351,12 +449,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         40000: 21500,
     }
     gerekli_yildiz = maliyetler.get(puan_miktari, 50)
-
-    if user_data["carpipuan"] >= 40000.0:
-      await query.edit_message_text(
-          "🔥 Zaten maksimum carpipuan sınırına (40.000) ulaştın reis!"
-      )
-      return
 
     title = f"{puan_miktari:,} carpipuan Paketi"
     description = f"Hesabına {puan_miktari:,} carpipuan yüklemesi"
@@ -435,8 +527,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_data["son_gunluk"] = simdiki_zaman
     mumkun_puanlar = [0.3, 0.5, 0.7, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0]
     kazanilan_gunluk = random.choice(mumkun_puanlar)
+
     user_data["carpipuan"] = round(
-        min(40000.0, user_data["carpipuan"] + kazanilan_gunluk), 1
+        user_data["carpipuan"] + kazanilan_gunluk, 1
     )
 
     keyboard = [
@@ -539,95 +632,4 @@ async def successful_payment_handler(
           "❌ Ödeme alındı fakat maalesef stok bitti veya yetersiz!"
       )
 
-  elif payload.startswith("puan_yukle_"):
-    puan_miktari = int(payload.split("_")[2])
-    user_data["carpipuan"] = round(
-        min(40000.0, user_data["carpipuan"] + puan_miktari), 1
-    )
-    await update.message.reply_text(
-        "⭐ **Yıldız ile Ödeme Başarılı!**\n\n"
-        f"🎉 Hesabına **+{puan_miktari:,} carpipuan** eklendi! 🚀\n"
-        f"💰 Güncel carpipuanın: {user_data['carpipuan']} / 40,000",
-        parse_mode="Markdown",
-    )
-
-
-async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-  user_id = update.effective_user.id
-  text = update.message.text.strip().upper()
-
-  if user_id not in KULLANICILAR:
-    KULLANICILAR[user_id] = {
-        "carpipuan": 1.0,
-        "son_gunluk": 0,
-        "hediye_kodu": None,
-        "kod_tuketildi": False,
-        "kod_bekleniyor": False,
-    }
-
-  user_data = KULLANICILAR[user_id]
-
-  if user_data.get("kod_bekleniyor", False):
-    user_data["kod_bekleniyor"] = False
-
-    # Eğer daha önce kod tüketildiyse bir daha giremez
-    if user_data.get("kod_tuketildi", False):
-      await update.message.reply_text(
-          "❌ Sen zaten kendi promosyon kodunu kullanıp ödülünü"
-          " aldın reis! İkinci kez kullanamazsın."
-      )
-      return
-
-    # Eğer kullanıcının henüz kodu yoksa oluştur
-    if not user_data["hediye_kodu"]:
-      user_data["hediye_kodu"] = benzersiz_alti_hane_uret()
-
-    # Kullanıcı sadece KENDİ kodunu girebilir
-    if text != user_data["hediye_kodu"]:
-      await update.message.reply_text(
-          "❌ Bu kod sana ait değil reis! Sadece kendi özel promosyon"
-          f" kodunu (`{user_data['hediye_kodu']}`) girebilirsin. 😄"
-      )
-      return
-
-    if text in KULLANILAN_KODLAR:
-      await update.message.reply_text(
-          "❌ Bu promosyon kodunu daha önce kullandın, ikinci kez"
-          " kullanamazsın!"
-      )
-      return
-
-    # 0.3 ile 5.0 arasında rastgele puan aralığı
-    mumkun_puanlar = [0.3, 0.5, 0.8, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0]
-    kazanilan_puan = random.choice(mumkun_puanlar)
-
-    KULLANILAN_KODLAR.add(text)
-    user_data["kod_tuketildi"] = True  # Kod kalıcı olarak kilitlendi/tüketildi
-    user_data["carpipuan"] = round(
-        min(40000.0, user_data["carpipuan"] + kazanilan_puan), 1
-    )
-
-    await update.message.reply_text(
-        f"🎉 **Tebrikler Reis! Kendi Kodunu Başarıyla Kullandın!**\n\n"
-        f"🎁 Promosyon Ödülün: **+{kazanilan_puan} carpipuan** hesabına"
-        f" eklendi! 🚀\n💰 Güncel carpipuanın: {user_data['carpipuan']}",
-        parse_mode="Markdown",
-    )
-  else:
-    await update.message.reply_text(
-        "Botu kullanmak için /start komutunu gönderebilir veya menü"
-        " butonlarını kullanabilirsin reis! 🎮"
-    )
-
-
-def main():
-  BOT_TOKEN = os.environ.get(
-      "BOT_TOKEN", "8962445060:AAEatnjtKUW66d--dFVdjgGnRqLMN_P7o44"
-  )
-
-  application = ApplicationBuilder().token(BOT_TOKEN).build()
-
-  application.add_handler(CommandHandler("start", start))
-  application.add_handler(CallbackQueryHandler(button_handler))
-  application.add_handler(PreCheckoutQueryHandler(pre_checkout_handler))
-  appli
+  elif payload.startsw
