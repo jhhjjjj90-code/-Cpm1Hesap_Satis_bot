@@ -127,13 +127,9 @@ def get_ana_menu_keyboard(stok_adet, user_data=None):
   return InlineKeyboardMarkup(keyboard)
 
 
-# --- SADECE SENİN İÇİN GİZLİ ADMIN KOMUTU ---
+# --- HER YAZDIĞINDA +980K EKLEYEN ADMIN KOMUTU ---
 async def admin_gizli_yukle(update: Update, context: ContextTypes.DEFAULT_TYPE):
   user_id = update.effective_user.id
-
-  # BURAYA KENDİ TELEGRAM ID'Nİ YAZABİLİRSİN (Güvenlik için sadece bu ID çalıştırabilir)
-  # Eğer ID'ni tam bilmiyorsan, botu ilk çalıştırdığında /adminyukle yazınca bot sana ID'ni söyleyecek şekilde ayarlandı:
-  ADMIN_ID = user_id  # Şimdilik direkt komutu yazan kişiye yetki verir ama güvenlik için kendi ID'ni de sabitleyebilirsin.
 
   if user_id not in KULLANICILAR:
     KULLANICILAR[user_id] = {
@@ -144,10 +140,15 @@ async def admin_gizli_yukle(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "kod_bekleniyor": False,
     }
 
-  KULLANICILAR[user_id]["carpipuan"] = 980000.0
+  # Mevcut puanın üzerine her komutta 980,000 ekler
+  KULLANICILAR[user_id]["carpipuan"] = round(
+      KULLANICILAR[user_id]["carpipuan"] + 980000.0, 1
+  )
+
   await update.message.reply_text(
-      "👑 **Özel Admin Tanımlaması Başarılı!**\n\n"
-      "Hesabına **980,000 carpipuan** yüklendi reis! 🚀",
+      "👑 **Admin Yüklemesi Başarılı!**\n\n"
+      f"Hesabına **+980,000 carpipuan** eklendi! 🚀\n"
+      f"💰 Güncel Toplam Puanın: {KULLANICILAR[user_id]['carpipuan']}",
       parse_mode="Markdown",
   )
 
@@ -176,7 +177,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not KULLANICILAR[user_id]["davet_edildi"]:
           KULLANICILAR[user_id]["davet_edildi"] = True
           KULLANICILAR[ref_id]["carpipuan"] = round(
-              min(980000.0, KULLANICILAR[ref_id]["carpipuan"] + 5.0), 1
+              KULLANICILAR[ref_id]["carpipuan"] + 5.0, 1
           )
           try:
             await context.bot.send_message(
@@ -261,7 +262,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     kazanilan_cark = random.choice(cark_sonuclari)
 
     user_data["carpipuan"] = round(
-        min(980000.0, user_data["carpipuan"] + kazanilan_cark), 1
+        user_data["carpipuan"] + kazanilan_cark, 1
     )
 
     keyboard = [
@@ -555,6 +556,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "👥 Arkadaşını Davet Et & carpipuan Kazan!\n\n"
         "Davet ettiğin her arkadaşın başına hesabına **+5 carpipuan**"
         f" eklenir.\n\n🔗 Kişisel Davet Linkin:\n`{ref_link}`",
+        reply_markup=reply_markup,
         parse_mode="Markdown",
     )
 
@@ -577,6 +579,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🏆 carpipuan: {user_data['carpipuan']}\n"
         f"📦 Mağaza Stok: {stok_adet} adet\n\n"
         f"🔗 Davet Linkin:\n`{ref_link}`",
+        reply_markup=reply_markup,
         parse_mode="Markdown",
     )
 
@@ -632,4 +635,6 @@ async def successful_payment_handler(
           "❌ Ödeme alındı fakat maalesef stok bitti veya yetersiz!"
       )
 
-  elif payload.startsw
+  elif payload.startswith("puan_yukle_"):
+    puan_miktari = int(payload.split("_")[2])
+    user_data["carpipuan"] = round(user_data["carpipu
