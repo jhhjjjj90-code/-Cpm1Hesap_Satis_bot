@@ -108,14 +108,14 @@ def get_ana_menu_keyboard(stok_adet, user_data=None):
   toplam_puan = get_dynamic_price(base_puan)
 
   yildiz_adet = user_data.get("yildiz_hesap_adet", 1) if user_data else 1
-  toplam_yildiz = yildiz_adet * 50
+  toplam_yildiz = yildiz_adet * 15  # Yıldız fiyatı 15 olarak ayarlandı
 
   karaborsa_uyari = " (🔥 Karaborsa!)" if stok_adet < 5 and stok_adet > 0 else ""
 
-  btn_text_1 = "📦 " + str(secilen_adet) + " VIP Hesap (" + str(toplam_puan) + " Puan)" + karaborsa_uyari
-  btn_text_2 = "💳 Puan ile Al (" + str(toplam_puan) + " Puan)"
-  btn_text_3 = "⭐ " + str(yildiz_adet) + " VIP Hesap (" + str(toplam_yildiz) + " Yıldız)"
-  btn_text_4 = "⭐ " + str(yildiz_adet) + " VIP Hesap Al (" + str(toplam_yildiz) + " Yıldız)"
+  btn_text_1 = "📦 " + str(secilen_adet) + " Adet VIP Hesap"
+  btn_text_2 = "💳 Puan ile Al (" + str(toplam_puan) + " Puan)" + karaborsa_uyari
+  btn_text_3 = "⭐ " + str(yildiz_adet) + " Adet VIP Hesap"
+  btn_text_4 = "⭐ VIP Hesap Al (" + str(toplam_yildiz) + " Yıldız)"
 
   keyboard = [
       [
@@ -452,7 +452,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
   elif query.data == "y_al":
     await query.answer()
     adet = user_data.get("yildiz_hesap_adet", 1)
-    toplam_fiyat = adet * 50
+    toplam_fiyat = adet * 15
     if stok_adet < adet:
       await query.answer("❌ Stok yetersiz!", show_alert=True)
       return
@@ -615,4 +615,5 @@ async def successful_payment_callback(
           parse_mode="Markdown",
       )
 
-  e
+  elif payload.startswith("puan_yukle_"):
+    par
