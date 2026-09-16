@@ -108,11 +108,11 @@ def get_dynamic_price(base_price: int) -> int:
 
 def get_ana_menu_keyboard(stok_adet, user_data=None):
   secilen_adet = user_data.get("hesap_adet", 1) if user_data else 1
-  base_puan = secilen_adet * 15
+  base_puan = secilen_adet * 50
   toplam_puan = get_dynamic_price(base_puan)
 
   yildiz_adet = user_data.get("yildiz_hesap_adet", 1) if user_data else 1
-  toplam_yildiz = yildiz_adet * 15
+  toplam_yildiz = yildiz_adet * 50
 
   karaborsa_uyari = " (🔥 Karaborsa!)" if stok_adet < 5 and stok_adet > 0 else ""
 
@@ -120,7 +120,7 @@ def get_ana_menu_keyboard(stok_adet, user_data=None):
       [
           InlineKeyboardButton("➖", callback_data="h_az"),
           InlineKeyboardButton(
-              f"📦 {secilen_adet} Adet Hesap ({toplam_puan} Puan){karaborsa_uyari}",
+              f"📦 {secilen_adet} Adet VIP FULL+FULL HESAP ({toplam_puan} Puan){karaborsa_uyari}",
               callback_data="bos_bilgi",
           ),
           InlineKeyboardButton("➕", callback_data="h_art"),
@@ -134,7 +134,7 @@ def get_ana_menu_keyboard(stok_adet, user_data=None):
       [
           InlineKeyboardButton("➖", callback_data="y_az"),
           InlineKeyboardButton(
-              f"⭐ {yildiz_adet} Adet Hesap ({toplam_yildiz} Yıldız)",
+              f"⭐ {yildiz_adet} Adet VIP FULL+FULL HESAP ({toplam_yildiz} Yıldız)",
               callback_data="bos_bilgi",
           ),
           InlineKeyboardButton("➕", callback_data="y_art"),
@@ -390,7 +390,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
   elif query.data == "hp_al":
     adet = user_data.get("hesap_adet", 1)
-    base_puan = adet * 15.0
+    base_puan = adet * 50.0
     gerekli_puan = get_dynamic_price(int(base_puan))
 
     if user_data["carpipuan"] < gerekli_puan:
@@ -422,7 +422,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
       keyboard = [[InlineKeyboardButton("🔙 Ana Menü", callback_data="ana_menu")]]
       try:
         await query.edit_message_text(
-            f"✅ {adet} Adet Hesap Başarıyla Verildi! (-{gerekli_puan} Puan)\n\n"
+            f"✅ {adet} Adet VIP FULL+FULL HESAP Başarıyla Verildi! (-{gerekli_puan} Puan)\n\n"
             f"✨ **Cashback İadesi:** +{cashback} Puan hesabına geri yüklendi!\n\n"
             f"🔑 Bilgiler:\n{hesaplar_metni}\n\n💰 Kalan Puanın: +{user_data['carpipuan']}",
             reply_markup=InlineKeyboardMarkup(keyboard),
@@ -431,7 +431,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
       except Exception:
         await context.bot.send_message(
             chat_id=user_id,
-            text=f"✅ {adet} Adet Hesap Başarıyla Verildi! (-{gerekli_puan} Puan)\n\n🔑 Bilgiler:\n{hesaplar_metni}\n\n💰 Kalan Puanın: +{user_data['carpipuan']}",
+            text=f"✅ {adet} Adet VIP FULL+FULL HESAP Başarıyla Verildi! (-{gerekli_puan} Puan)\n\n🔑 Bilgiler:\n{hesaplar_metni}\n\n💰 Kalan Puanın: +{user_data['carpipuan']}",
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup(keyboard),
         )
@@ -490,7 +490,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
   elif query.data == "y_al":
     await query.answer()
     adet = user_data.get("yildiz_hesap_adet", 1)
-    toplam_fiyat = adet * 15
+    toplam_fiyat = adet * 50
     if stok_adet < adet:
       await query.answer("❌ Stokta o kadar hesap yok reis!", show_alert=True)
       return
@@ -498,7 +498,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_invoice(
         chat_id=user_id,
         title=f"⭐ Yıldız ile {adet} Adet Hesap Al",
-        description=f"{adet} Adet CPM1 Hesabı ({toplam_fiyat} Yıldız)",
+        description=f"{adet} Adet VIP FULL+FULL HESAP ({toplam_fiyat} Yıldız)",
         payload=f"hesap_coklu_{adet}",
         currency="XTR",
         prices=[LabeledPrice(f"{adet} Adet Hesap", toplam_fiyat)],
@@ -614,6 +614,4 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )[:10]
     metin = "🏆 **En İyi 10 Liderlik Tablosu**\n\n"
     for sira, (uid, udata) in enumerate(sirali, 1):
-      metin += f"{sira}. Kullanıcı: **+{udata['carpipuan']}** Puan\n"
-
-    keyboard = [[InlineK
+      metin += f"{sira}. Kullan
