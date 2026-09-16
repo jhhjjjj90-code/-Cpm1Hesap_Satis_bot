@@ -18,10 +18,7 @@ from telegram.ext import (
 
 app = Flask(__name__)
 
-# Senin Telegram ID'n
 ADMIN_IDS = [8520025523]
-
-# Botunun kullanıcı adını buraya yaz
 BOT_USERNAME = "Cpm1hesap_bot"
 
 
@@ -35,7 +32,6 @@ def run_web():
   app.run(host="0.0.0.0", port=port)
 
 
-# --- VERİTABANI YÖNETİMİ (JSON) ---
 DB_FILE = "veritabani.json"
 
 
@@ -115,22 +111,27 @@ def get_ana_menu_keyboard(stok_adet, user_data=None):
 
   karaborsa_uyari = " (🔥 Karaborsa!)" if stok_adet < 5 and stok_adet > 0 else ""
 
+  btn_text_1 = f"📦 {secilen_adet} VIP Hesap ({toplam_puan} Puan){karaborsa_uyari}"
+  btn_text_2 = f"💳 Puan ile Al ({toplam_puan} Puan)"
+  btn_text_3 = f"⭐ {yildiz_adet} VIP Hesap ({toplam_yildiz} Yıldız)"
+  btn_text_4 = f"⭐ {yildiz_adet} VIP Hesap Al ({toplam_yildiz} Yıldız)"
+
   keyboard = [
       [
           InlineKeyboardButton("➖", callback_data="h_az"),
-          InlineKeyboardButton(f"📦 {secilen_adet} VIP Hesap ({toplam_puan} Puan){karaborsa_uyari}", callback_data="bos_bilgi"),
+          InlineKeyboardButton(btn_text_1, callback_data="bos_bilgi"),
           InlineKeyboardButton("➕", callback_data="h_art"),
       ],
       [
-          InlineKeyboardButton(f"💳 Puan ile Al ({toplam_puan} Puan)", callback_data="hp_al")
+          InlineKeyboardButton(btn_text_2, callback_data="hp_al")
       ],
       [
           InlineKeyboardButton("➖", callback_data="y_az"),
-          InlineKeyboardButton(f"⭐ {yildiz_adet} VIP Hesap ({toplam_yildiz} Yıldız)", callback_data="bos_bilgi"),
+          InlineKeyboardButton(btn_text_3, callback_data="bos_bilgi"),
           InlineKeyboardButton("➕", callback_data="y_art"),
       ],
       [
-          InlineKeyboardButton(f"⭐ {yildiz_adet} VIP Hesap Al ({toplam_yildiz} Yıldız)", callback_data="y_al")
+          InlineKeyboardButton(btn_text_4, callback_data="y_al")
       ],
       [
           InlineKeyboardButton("⭐ Yıldız ile Puan Al", callback_data="puan_menu")
@@ -621,4 +622,4 @@ async def successful_payment_callback(
     veri_kaydet()
 
     await update.message.reply_text(
-        f"🔐 Şifre: `{giz
+        f"🔐 Şifr
