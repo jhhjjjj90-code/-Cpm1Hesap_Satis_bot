@@ -562,4 +562,5 @@ async def successful_payment_callback(update: Update, context: ContextTypes.DEFA
         await update.message.reply_text(mesaj, parse_mode="Markdown")
 
 
-async def message_handler(update: Update, context: Conte
+async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    
