@@ -24,7 +24,7 @@ BOT_USERNAME = "Cpm1hesap_bot"
 
 @app.route("/")
 def home():
-    return "Cpm1 Hesap Satis Botu Aktif and Calisiyor! 🚀"
+    return "Cpm1 Hesap Satis Botu Aktif!"
 
 
 def run_web():
@@ -563,4 +563,4 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data["beklenen_islem"] = None
         context.user_data["beklenen_admin_islem"] = None
         try:
-            mesaj = f"?
+            mesaj = f"🚀 CPM1 Hesap Mağa
