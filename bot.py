@@ -62,7 +62,6 @@ def veri_kaydet():
 
 
 DB_DATA = veri_yukle()
-# Eğer veritabanı eski yapıdaysa (sadece kullanıcı sözlüğü ise) dönüştürelim
 if not isinstance(DB_DATA, dict) or "users" not in DB_DATA:
   DB_DATA = {
       "users": DB_DATA if isinstance(DB_DATA, dict) else {},
@@ -94,17 +93,11 @@ def stok_dusur_ve_ver(adet=1):
   verilecek_hesaplar = stoklar[:adet]
   with open("stok.txt", "w", encoding="utf-8") as f:
     f.write("\n".join(stoklar[adet:]) + "\n")
-  
-  # Stok düşünce waitlist'tekilere otomatik haber verme tetikleyicisi
-  if len(stoklar) - adet == 0:
-    pass
   return verilecek_hesaplar
 
 
-# Karaborsa / Dinamik Fiyatlandırma Mekanizması
 def get_dynamic_price(base_price: int) -> int:
   stock = stok_oku()
-  # Stok 5'in altına düşerse fiyat otomatik %20 artar
   if len(stock) < 5:
     return int(base_price * 1.2)
   return base_price
@@ -276,7 +269,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     return
 
-  # Otomatik Çekilişe Katılma
   elif query.data == "join_giveaway":
     if DB_DATA["giveaway"].get("active", False):
       if user_id_str not in DB_DATA["giveaway"]["participants"]:
@@ -350,7 +342,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
       return
 
     if stok_adet < adet:
-      # Stok Yok -> Otomatik Bekleme Listesi (Waitlist)
       if user_id_str not in DB_DATA["waitlist"]:
         DB_DATA["waitlist"].append(user_id_str)
         veri_kaydet()
@@ -363,10 +354,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     verilenler = stok_dusur_ve_ver(adet)
     if verilenler:
       await query.answer()
-      
-      # Cashback (%10 Nakit İade) Hesaplama
       cashback = int(gerekli_puan * 0.10)
-      
       user_data["carpipuan"] = round(user_data["carpipuan"] - gerekli_puan + cashback, 1)
       user_data["spent"] = user_data.get("spent", 0) + int(gerekli_puan)
       veri_kaydet()
@@ -622,4 +610,19 @@ async def successful_payment_callback(
     KULLANICILAR[user_id_str] = {
         "carpipuan": 0.0,
         "son_gunluk": 0,
-        
+        "davet_edildi": False,
+        "davet_sayisi": 0,
+        "hesap_adet": 1,
+        "yildiz_hesap_adet": 1,
+        "promo_alindi": False,
+        "sifre_oyunu_kullanildi": True,
+        "beklenen_sifre": None,
+        "spent": 0,
+    }
+  user_data = KULLANICILAR[user_id_str]
+  stok_adet = len(stok_oku())
+
+  if payload.startswith("hesap_coklu_"):
+    adet = int(payload.split("_")[2])
+    if stok_adet < adet:
+      await update.messag
