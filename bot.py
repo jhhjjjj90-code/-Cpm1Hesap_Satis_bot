@@ -646,4 +646,16 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
   if user_id_str in KULLANICILAR:
     user_data = KULLANICILAR[user_id_str]
     if user_data.get("beklenen_sifre") and text == user_data["beklenen_sifre"]:
-    
+      if user_id_str in KULLANICILAR:
+    user_data = KULLANICILAR[user_id_str]
+    if user_data.get("beklenen_sifre") and text == user_data["beklenen_sifre"]:
+      kazanilan_odul = random.choice([10, 30, 50, 100])
+      user_data["carpipuan"] = round(
+          user_data["carpipuan"] + kazanilan_odul, 1
+      )
+      user_data["beklenen_sifre"] = None
+      veri_kaydet()
+
+      mesaj = f"🎉 Tebrikler! Ödül Eklendi: **+{kazanilan_odul} Puan**"
+      await update.message.reply_text(mesaj, parse_mode="Markdown")
+      
