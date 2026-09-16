@@ -15,7 +15,7 @@ from telegram.ext import (
     filters,
 )
 
-app = FlaskName(__name__) if "__name__" == "__main__" else Flask(__name__)
+app = Flask(__name__)
 
 
 @app.route("/")
@@ -30,10 +30,8 @@ def run_web():
 
 # Kullanıcı verileri, üretilen tüm aktif kodlar ve kullanılmış kodlar havuzu
 KULLANICILAR = {}
-URETILEN_KODLAR = (
-    set()
-)  # Sistemde oluşturulan tüm özel kodlar (Max 392k+ kapasite için)
-KULLANILAN_KODLAR = set()  # Kullanılmış/tüketilmiş kodlar
+URETILEN_KODLAR = set()
+KULLANILAN_KODLAR = set()
 
 
 def stok_oku():
@@ -57,11 +55,10 @@ def stok_dusur_ve_ver(adet=1):
   return verilecek_hesaplar
 
 
-# --- 6 HANELİ BENZERSİZ KOD ÜRETİCİ (392.870+ Kişiye Kadar Destekli) ---
+# --- 6 HANELİ BENZERSİZ KOD ÜRETİCİ ---
 def benzersiz_alti_hane_uret():
   karakterler = string.ascii_uppercase + string.digits  # A-Z, 0-9
   while True:
-    # 6 haneli rastgele kod üret (Örn: X7K9M2, B4R1L8)
     kod = "".join(random.choices(karakterler, k=6))
     if kod not in URETILEN_KODLAR:
       URETILEN_KODLAR.add(kod)
@@ -106,7 +103,6 @@ def get_ana_menu_keyboard(stok_adet, user_data=None):
       ],
   ]
 
-  # Eğer kullanıcı özel kodunu henüz almadıysa butonu göster, aldıysa menüden uçur
   if user_data and not user_data.get("kod_alindi", False):
     keyboard.append([
         InlineKeyboardButton(
@@ -132,12 +128,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "carpipuan": float(rastgele_hediye),
         "son_gunluk": 0,
         "davet_edildi": False,
-        "hediye_kodu": None,  # Butona basınca 6 haneli olarak atanacak
+        "hediye_kodu": None,
         "kod_alindi": False,
         "kod_bekleniyor": False,
     }
 
-  # Referans kontrolü
   if context.args:
     try:
       ref_id = int(context.args[0])
@@ -191,7 +186,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
   stok_adet = len(stok_oku())
   user_data["kod_bekleniyor"] = False
 
-  # 1. 15 CARPİPUAN İLE HESAP AL
   if query.data == "hesap_al_puan":
     if user_data["carpipuan"] < 15.0:
       await query.edit_message_text(
@@ -218,7 +212,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
       await query.edit_message_text("❌ Stok hatası oluştu.")
 
-  # 2. YILDIZ İLE HESAP AL
   elif query.data.startswith("yildiz_hesap_menu_"):
     adet = int(query.data.split("_")[3])
     toplam_yildiz = adet * 15
@@ -288,7 +281,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         " oluşturuldu! Lütfen yukarıdaki ödeme butonundan işlemi tamamla."
     )
 
-  # 3. CARPİPUAN PAKETLERİ
   elif query.data == "carpipuan_menu":
     keyboard = [
         [
@@ -383,9 +375,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         " faturası gönderildi! Lütfen yukarıdan ödemeyi gerçekleştir."
     )
 
-  # 4. KULLANICIYA ÖZEL 6 HANELİ KODU ÜRET VE VER
   elif query.data == "ozel_kod_al":
-    # Eğer daha önce kodu yoksa tamamen rastgele 6 haneli kod üret
     if not user_data["hediye_kodu"]:
       user_data["hediye_kodu"] = benzersiz_alti_hane_uret()
 
@@ -405,7 +395,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return
 
-  # 5. PROMOSYON KODU GİR MENÜSÜ
   elif query.data == "promo_gir_menu":
     user_data["kod_bekleniyor"] = True
     keyboard = [
@@ -422,7 +411,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown",
     )
 
-  # 6. GÜNLÜK ÖDÜL AL
   elif query.data == "gunluk_odul":
     simdiki_zaman = time.time()
     gecen_sure = simdiki_zaman - user_data["son_gunluk"]
@@ -458,7 +446,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown",
     )
 
-  # 7. ARKADAŞINI DAVET ET
   elif query.data == "davet_et":
     bot_username = context.bot.username
     ref_link = f"https://t.me/{bot_username}?start={user_id}"
@@ -474,7 +461,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown",
     )
 
-  # 8. PROFİL
   elif query.data == "profil":
     bot_username = context.bot.username
     ref_link = f"https://t.me/{bot_username}?start={user_id}"
@@ -498,7 +484,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown",
     )
 
-  # 9. ANA MENÜ
   elif query.data == "ana_menu":
     await query.edit_message_text(
         "🚀 CPM1 Hesap Mağazasına Hoş Geldin!\n\n"
@@ -512,13 +497,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     pass
 
 
-# --- ÖDEME ÖNCESİ ONAY ---
 async def pre_checkout_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
   query = update.pre_checkout_query
   await query.answer(ok=True)
 
 
-# --- ÖDEME BAŞARILI ---
 async def successful_payment_handler(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ):
@@ -566,10 +549,9 @@ async def successful_payment_handler(
     )
 
 
-# --- MESAJ YÖNETİCİSİ (PROMOSYON KODU KONTROLÜ) ---
 async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
   user_id = update.effective_user.id
-  text = update.message.text.strip().upper()  # Büyük/küçük harf duyarlılığını önle
+  text = update.message.text.strip().upper()
 
   if user_id not in KULLANICILAR:
     KULLANICILAR[user_id] = {
@@ -585,21 +567,18 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
   if user_data.get("kod_bekleniyor", False):
     user_data["kod_bekleniyor"] = False
 
-    # 1. Kendi ürettiği kodu kendi hesabına yazmasını engelle
     if user_data["hediye_kodu"] and text == user_data["hediye_kodu"]:
       await update.message.reply_text(
           "❌ Kendi promosyon kodunu kendi hesabında kullanamazsın reis! 😄"
       )
       return
 
-    # 2. Girilen 6 haneli kod herhangi bir kullanıcının özel kodu mu kontrol et
     hedef_sahip_id = None
     for uid, udata in KULLANICILAR.items():
       if udata["hediye_kodu"] == text:
         hedef_sahip_id = uid
         break
 
-    # Eğer kod sistemde üretilmiş geçerli bir kodsa
     if hedef_sahip_id:
       if text in KULLANILAN_KODLAR:
         await update.message.reply_text(
@@ -627,4 +606,36 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
       )
   else:
     await update.message.reply_text(
-        "Botu kulla
+        "Botu kullanmak için /start komutunu gönderebilir veya menü"
+        " butonlarını kullanabilirsin reis! 🎮"
+    )
+
+
+def main():
+  BOT_TOKEN = os.environ.get(
+      "BOT_TOKEN", "8962445060:AAEatnjtKUW66d--dFVdjgGnRqLMN_P7o44"
+  )
+
+  application = ApplicationBuilder().token(BOT_TOKEN).build()
+
+  application.add_handler(CommandHandler("start", start))
+  application.add_handler(CallbackQueryHandler(button_handler))
+  application.add_handler(PreCheckoutQueryHandler(pre_checkout_handler))
+  application.add_handler(
+      MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment_handler)
+  )
+  application.add_handler(
+      MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler)
+  )
+
+  print("Bot Hatasız Sürüm ile Başlatıldı...")
+  application.run_polling()
+
+
+if __name__ == "__main__":
+  t = threading.Thread(target=run_web)
+  t.daemon = True
+  t.start()
+
+  main()
+        
