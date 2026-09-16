@@ -53,9 +53,9 @@ def stok_dusur_ve_ver(adet=1):
   return verilecek_hesaplar
 
 
-# --- ANA MENÜ FONKSİYONU ---
-def get_ana_menu_keyboard(stok_adet):
-  return InlineKeyboardMarkup([
+# --- ANA MENÜ FONKSİYONU (KOD ALINDIYSA BUTONU SİLER) ---
+def get_ana_menu_keyboard(stok_adet, user_data=None):
+  keyboard = [
       [
           InlineKeyboardButton(
               "📦 Hesap Satın Al (15 carpipuan)", callback_data="hesap_al_puan"
@@ -89,12 +89,20 @@ def get_ana_menu_keyboard(stok_adet):
               callback_data="davet_et",
           )
       ],
-      [
-          InlineKeyboardButton(
-              "👤 Profilim & Sana Özel Kodum", callback_data="profil"
-          )
-      ],
-  ])
+  ]
+
+  # Kullanıcı henüz özel promosyon kodunu almadıysa butonu ekle, aldıysa hiç gösterme (sil)
+  if user_data and not user_data.get("kod_alindi", False):
+    keyboard.append([
+        InlineKeyboardButton(
+            "🎁 Sana Özel Promosyon Kodumu Al", callback_data="ozel_kod_al"
+        )
+    ])
+
+  keyboard.append(
+      [InlineKeyboardButton("👤 Profilim & Bilgilerim", callback_data="profil")]
+  )
+  return InlineKeyboardMarkup(keyboard)
 
 
 # --- BOT KOMUTLARI VE MENÜLER ---
@@ -104,13 +112,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
   if user_id not in KULLANICILAR:
     baslangic_secenekleri = [0.0, 0.5, 0.8, 1.0, 1.5, 2.0]
     rastgele_hediye = random.choice(baslangic_secenekleri)
-    ozel_hediye_kodu = f"CPM-{user_id}-{random.randint(1000, 9999)}"
+    sabit_ozel_kod = f"CPM-{user_id}"
 
     KULLANICILAR[user_id] = {
-        "carpipuan": rastgele_hediye,
+        "carpipuan": float(rastgele_hediye),
         "son_gunluk": 0,
         "davet_edildi": False,
-        "hediye_kodu": ozel_hediye_kodu,
+        "hediye_kodu": sabit_ozel_kod,
+        "kod_alindi": False,
         "kod_bekleniyor": False,
     }
 
@@ -121,8 +130,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
       if ref_id != user_id and ref_id in KULLANICILAR:
         if not KULLANICILAR[user_id]["davet_edildi"]:
           KULLANICILAR[user_id]["davet_edildi"] = True
-          KULLANICILAR[ref_id]["carpipuan"] = min(
-              40000.0, KULLANICILAR[ref_id]["carpipuan"] + 5.0
+          KULLANICILAR[ref_id]["carpipuan"] = round(
+              min(40000.0, KULLANICILAR[ref_id]["carpipuan"] + 5.0), 1
           )
           try:
             await context.bot.send_message(
@@ -144,11 +153,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
   await update.message.reply_text(
       "🚀 CPM1 Hesap Mağazasına Hoş Geldin!\n\n"
       f"📦 Güncel Stok: {stok_adet} adet hesap\n"
-      f"🏆 carpipuanın: {user_data['carpipuan']} carpipuan\n"
-      f"🎁 Size Özel Hediye Kodunuz: `{user_data['hediye_kodu']}`\n"
-      "(15 carpipuan = 1 Ücretsiz Hesap)\n\n"
+      f"🏆 carpipuanın: {user_data['carpipuan']} carpipuan\n\n"
       "Aşağıdaki menüden işlem seçebilirsin:",
-      reply_markup=get_ana_menu_keyboard(stok_adet),
+      reply_markup=get_ana_menu_keyboard(stok_adet, user_data),
       parse_mode="Markdown",
   )
 
@@ -160,9 +167,10 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
   if user_id not in KULLANICILAR:
     KULLANICILAR[user_id] = {
-        "carpipuan": random.choice([0.0, 0.5, 0.8, 1.0, 2.0]),
+        "carpipuan": float(random.choice([0.0, 0.5, 0.8, 1.0, 2.0])),
         "son_gunluk": 0,
-        "hediye_kodu": f"CPM-{user_id}-{random.randint(1000, 9999)}",
+        "hediye_kodu": f"CPM-{user_id}",
+        "kod_alindi": False,
         "kod_bekleniyor": False,
     }
   user_data = KULLANICILAR[user_id]
@@ -186,7 +194,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     verilenler = stok_dusur_ve_ver(1)
     if verilenler:
-      user_data["carpipuan"] -= 15.0
+      user_data["carpipuan"] = round(user_data["carpipuan"] - 15.0, 1)
       await query.edit_message_text(
           f"✅ 15 carpipuan harcandı ve hesap verildi!\n\n🔑 Bilgiler:\n`{verilenler[0]}`\n\n"
           f"Kalan carpipuanın: {user_data['carpipuan']}\nGüle güle kullan"
@@ -196,7 +204,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
       await query.edit_message_text("❌ Stok hatası oluştu.")
 
-  # 2. YILDIZ İLE HESAP AL - ADET SEÇİM MENÜSÜ (+ VE -)
+  # 2. YILDIZ İLE HESAP AL
   elif query.data.startswith("yildiz_hesap_menu_"):
     adet = int(query.data.split("_")[3])
     toplam_yildiz = adet * 15
@@ -231,7 +239,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"• Tane Fiyatı: **15 ⭐**\n"
         f"• Seçilen Adet: **{adet}**\n"
         f"• Toplam Tutar: **{toplam_yildiz} ⭐**\n\n"
-        "İstediğin miktarı ➕ and ➖ butonlarıyla ayarlayabilirsin:",
+        "İstediğin miktarı ayarlayabilirsin:",
         reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode="Markdown",
     )
@@ -266,7 +274,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         " oluşturuldu! Lütfen yukarıdaki ödeme butonundan işlemi tamamla."
     )
 
-  # 3. CARPİPUAN PAKETLERİ MENÜSÜ
+  # 3. CARPİPUAN PAKETLERİ
   elif query.data == "carpipuan_menu":
     keyboard = [
         [
@@ -361,7 +369,24 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         " faturası gönderildi! Lütfen yukarıdan ödemeyi gerçekleştir."
     )
 
-  # 4. PROMOSYON KODU GİR MENÜSÜ
+  # 4. KULLANICIYA ÖZEL PROMOSYON KODUNU AL (BUTONA BASINCA ALINIR VE BUTON SİLİNİR)
+  elif query.data == "ozel_kod_al":
+    user_data["kod_alindi"] = True
+    keyboard = [
+        [InlineKeyboardButton("🔙 Ana Menüye Dön", callback_data="ana_menu")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await query.edit_message_text(
+        "🎁 **Sana Özel Promosyon Kodun Oluşturuldu!**\n\n"
+        f"Kodun: `{user_data['hediye_kodu']}`\n\n"
+        "✨ *Bu kodu arkadaşlarınla paylaşabilirsin. İstediğin için"
+        " menüdeki 'Kodumu Al' butonu hesabından kaldırıldı!*",
+        reply_markup=reply_markup,
+        parse_mode="Markdown",
+    )
+    return
+
+  # 5. PROMOSYON KODU GİR MENÜSÜ
   elif query.data == "promo_gir_menu":
     user_data["kod_bekleniyor"] = True
     keyboard = [
@@ -377,7 +402,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown",
     )
 
-  # 5. GÜNLÜK ÖDÜL AL (0.3 - 2 PUAN ARASI)
+  # 6. GÜNLÜK ÖDÜL AL
   elif query.data == "gunluk_odul":
     simdiki_zaman = time.time()
     gecen_sure = simdiki_zaman - user_data["son_gunluk"]
@@ -397,7 +422,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_data["son_gunluk"] = simdiki_zaman
     mumkun_puanlar = [0.3, 0.5, 0.7, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0]
     kazanilan_gunluk = random.choice(mumkun_puanlar)
-    user_data["carpipuan"] = min(40000.0, user_data["carpipuan"] + kazanilan_gunluk)
+    user_data["carpipuan"] = round(
+        min(40000.0, user_data["carpipuan"] + kazanilan_gunluk), 1
+    )
 
     keyboard = [
         [InlineKeyboardButton("🔙 Ana Menüye Dön", callback_data="ana_menu")]
@@ -411,7 +438,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown",
     )
 
-  # 6. ARKADAŞINI DAVET ET
+  # 7. ARKADAŞINI DAVET ET
   elif query.data == "davet_et":
     bot_username = context.bot.username
     ref_link = f"https://t.me/{bot_username}?start={user_id}"
@@ -427,7 +454,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown",
     )
 
-  # 7. PROFİL
+  # 8. PROFİL
   elif query.data == "profil":
     bot_username = context.bot.username
     ref_link = f"https://t.me/{bot_username}?start={user_id}"
@@ -436,9 +463,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await query.edit_message_text(
-        f"👤 **Profil ve Sana Özel Bilgiler:**\n\n"
+        f"👤 **Profil ve Bilgilerin:**\n\n"
         f"🆔 ID: {user_id}\n"
-        f"🎁 Size Özel Hediye Kodunuz:\n`{user_data['hediye_kodu']}`\n\n"
+        f"🎁 Senin Sabit Kodun: `{user_data['hediye_kodu']}`\n"
         f"🏆 carpipuan: {user_data['carpipuan']}\n"
         f"📦 Mağaza Stok: {stok_adet} adet\n\n"
         f"🔗 Davet Linkin:\n`{ref_link}`",
@@ -446,16 +473,14 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown",
     )
 
-  # 8. ANA MENÜ
+  # 9. ANA MENÜ
   elif query.data == "ana_menu":
     await query.edit_message_text(
         "🚀 CPM1 Hesap Mağazasına Hoş Geldin!\n\n"
         f"📦 Güncel Stok: {stok_adet} adet hesap\n"
-        f"🏆 carpipuanın: {user_data['carpipuan']} carpipuan\n"
-        f"🎁 Size Özel Hediye Kodunuz: `{user_data['hediye_kodu']}`\n"
-        "(15 carpipuan = 1 Ücretsiz Hesap)\n\n"
+        f"🏆 carpipuanın: {user_data['carpipuan']} carpipuan\n\n"
         "Aşağıdaki menüden işlem seçebilirsin:",
-        reply_markup=get_ana_menu_keyboard(stok_adet),
+        reply_markup=get_ana_menu_keyboard(stok_adet, user_data),
         parse_mode="Markdown",
     )
   elif query.data == "ignore":
@@ -468,7 +493,7 @@ async def pre_checkout_handler(update: Update, context: ContextTypes.DEFAULT_TYP
   await query.answer(ok=True)
 
 
-# --- ÖDEME BAŞARILI OLUNCA ÜRÜN TESLİMİ ---
+# --- ÖDEME BAŞARILI ---
 async def successful_payment_handler(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ):
@@ -480,7 +505,8 @@ async def successful_payment_handler(
     KULLANICILAR[user_id] = {
         "carpipuan": 1.0,
         "son_gunluk": 0,
-        "hediye_kodu": f"CPM-{user_id}-{random.randint(1000, 9999)}",
+        "hediye_kodu": f"CPM-{user_id}",
+        "kod_alindi": False,
         "kod_bekleniyor": False,
     }
 
@@ -500,13 +526,12 @@ async def successful_payment_handler(
     else:
       await update.message.reply_text(
           "❌ Ödeme alındı fakat maalesef stok bitti veya yetersiz!"
-          " Lütfen yöneticiye bildir."
       )
 
   elif payload.startswith("puan_yukle_"):
     puan_miktari = int(payload.split("_")[2])
-    user_data["carpipuan"] = min(
-        40000.0, user_data["carpipuan"] + puan_miktari
+    user_data["carpipuan"] = round(
+        min(40000.0, user_data["carpipuan"] + puan_miktari), 1
     )
     await update.message.reply_text(
         "⭐ **Yıldız ile Ödeme Başarılı!**\n\n"
@@ -525,7 +550,8 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     KULLANICILAR[user_id] = {
         "carpipuan": 1.0,
         "son_gunluk": 0,
-        "hediye_kodu": f"CPM-{user_id}-{random.randint(1000, 9999)}",
+        "hediye_kodu": f"CPM-{user_id}",
+        "kod_alindi": False,
         "kod_bekleniyor": False,
     }
 
@@ -533,6 +559,12 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
   if user_data.get("kod_bekleniyor", False):
     user_data["kod_bekleniyor"] = False
+
+    if text == user_data["hediye_kodu"]:
+      await update.message.reply_text(
+          "❌ Kendi promosyon kodunu kullanamazsın reis! 😄"
+      )
+      return
 
     if text in KULLANILAN_KODLAR:
       await update.message.reply_text(
@@ -544,7 +576,9 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     kazanilan_puan = random.choice(mumkun_puanlar)
 
     KULLANILAN_KODLAR.add(text)
-    user_data["carpipuan"] = min(40000.0, user_data["carpipuan"] + kazanilan_puan)
+    user_data["carpipuan"] = round(
+        min(40000.0, user_data["carpipuan"] + kazanilan_puan), 1
+    )
 
     await update.message.reply_text(
         f"🎉 **Tebrikler Reis! Kod Başarıyla Onaylandı!**\n\n"
