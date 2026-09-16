@@ -182,7 +182,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
   query = update.callback_query
-  await query.answer()
   user_id = query.from_user.id
 
   if user_id not in KULLANICILAR:
@@ -201,9 +200,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
   stok_adet = len(stok_oku())
 
   if query.data == "bos_bilgi":
+    await query.answer()
     return
 
   elif query.data == "h_art":
+    await query.answer()
     if user_data["hesap_adet"] < max(1, stok_adet):
       user_data["hesap_adet"] += 1
     try:
@@ -214,6 +215,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
       pass
 
   elif query.data == "h_az":
+    await query.answer()
     if user_data["hesap_adet"] > 1:
       user_data["hesap_adet"] -= 1
     try:
@@ -224,6 +226,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
       pass
 
   elif query.data == "y_art":
+    await query.answer()
     if user_data["yildiz_hesap_adet"] < max(1, stok_adet):
       user_data["yildiz_hesap_adet"] += 1
     try:
@@ -234,6 +237,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
       pass
 
   elif query.data == "y_az":
+    await query.answer()
     if user_data["yildiz_hesap_adet"] > 1:
       user_data["yildiz_hesap_adet"] -= 1
     try:
@@ -249,27 +253,41 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if user_data["carpipuan"] < gerekli_puan:
       await query.answer(
-          f"❌ Yetersiz carpipuan! {gerekli_puan} puan lazım.", show_alert=True
+          f"❌ Yetersiz carpipuan! {gerekli_puan} puan lazım. (Mevcut: +{user_data['carpipuan']})",
+          show_alert=True,
       )
       return
+
     if stok_adet < adet:
       await query.answer("❌ Stokta o kadar hesap yok reis!", show_alert=True)
       return
 
     verilenler = stok_dusur_ve_ver(adet)
     if verilenler:
+      await query.answer()
       user_data["carpipuan"] = round(user_data["carpipuan"] - gerekli_puan, 1)
       hesaplar_metni = "\n".join([f"`{h}`" for h in verilenler])
       keyboard = [[InlineKeyboardButton("🔙 Ana Menü", callback_data="ana_menu")]]
-      await query.edit_message_text(
-          f"✅ {adet} Adet Hesap Başarıyla Verildi! (-{gerekli_puan}"
-          f" Puan)\n\n🔑 Bilgiler:\n{hesaplar_metni}\n\n💰 Kalan Puanın:"
-          f" +{user_data['carpipuan']}",
-          reply_markup=InlineKeyboardMarkup(keyboard),
-          parse_mode="Markdown",
-      )
+      try:
+        await query.edit_message_text(
+            f"✅ {adet} Adet Hesap Başarıyla Verildi! (-{gerekli_puan}"
+            f" Puan)\n\n🔑 Bilgiler:\n{hesaplar_metni}\n\n💰 Kalan Puanın:"
+            f" +{user_data['carpipuan']}",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode="Markdown",
+        )
+      except Exception:
+        await context.bot.send_message(
+            chat_id=user_id,
+            text=f"✅ {adet} Adet Hesap Başarıyla Verildi! (-{gerekli_puan} Puan)\n\n🔑 Bilgiler:\n{hesaplar_metni}\n\n💰 Kalan Puanın: +{user_data['carpipuan']}",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+        )
+    else:
+      await query.answer("❌ Stok hatası oluştu!", show_alert=True)
 
   elif query.data == "sifre_baslat":
+    await query.answer()
     if user_data.get("sifre_oyunu_kullanildi", False):
       await query.answer(
           "❌ Bu şifre çözme hakkını zaten kullandın reis!", show_alert=True
@@ -294,6 +312,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
   elif query.data == "promo":
+    await query.answer()
     if not user_data["promo_alindi"]:
       rastgele_kod = "CPM-" + "".join(
           random.choices(string.ascii_uppercase + string.digits, k=6)
@@ -317,6 +336,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
       )
 
   elif query.data == "y_al":
+    await query.answer()
     adet = user_data.get("yildiz_hesap_adet", 1)
     toplam_fiyat = adet * 15
     if stok_adet < adet:
@@ -333,6 +353,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
   elif query.data == "puan_menu":
+    await query.answer()
     keyboard = [
         [InlineKeyboardButton("⭐ 50 Yıldız ➔ 50 Puan", callback_data="p_yildiz_50")],
         [
@@ -372,6 +393,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
   elif query.data.startswith("p_yildiz_"):
+    await query.answer()
     yildiz_miktari = int(query.data.split("_")[2])
     puan_tablosu = {
         50: 50,
@@ -394,6 +416,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
   elif query.data == "gunluk":
+    await query.answer()
     simdi = time.time()
     if simdi - user_data["son_gunluk"] < 86400:
       keyboard = [[InlineKeyboardButton("🔙 Ana Menü", callback_data="ana_menu")]]
@@ -416,6 +439,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
   elif query.data == "davet":
+    await query.answer()
     bot_username = context.bot_data.get("username", "BotKullaniciAdin")
     davet_linki = f"https://t.me/{bot_username}?start=ref_{user_id}"
     davet_sayisi = user_data.get("davet_sayisi", 0)
@@ -432,6 +456,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
   elif query.data == "liderlik":
+    await query.answer()
     sirali = sorted(
         KULLANICILAR.items(), key=lambda x: x[1]["carpipuan"], reverse=True
     )[:10]
@@ -445,6 +470,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
   elif query.data == "profil":
+    await query.answer()
     keyboard = [[InlineKeyboardButton("🔙 Ana Menü", callback_data="ana_menu")]]
     davet_sayisi = user_data.get("davet_sayisi", 0)
     await query.edit_message_text(
@@ -458,6 +484,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
   elif query.data == "ana_menu":
+    await query.answer()
     try:
       await query.edit_message_text(
           "🚀 CPM1 Hesap Mağazasına Hoş Geldin!\n\n"
