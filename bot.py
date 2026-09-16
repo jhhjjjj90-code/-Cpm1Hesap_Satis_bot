@@ -1,3 +1,4 @@
+import json
 import os
 import random
 import string
@@ -28,7 +29,29 @@ def run_web():
   app.run(host="0.0.0.0", port=port)
 
 
-KULLANICILAR = {}
+# --- VERİTABANI YÖNETİMİ (JSON) ---
+DB_FILE = "veritabani.json"
+
+
+def veri_yukle():
+  if os.path.exists(DB_FILE):
+    try:
+      with open(DB_FILE, "r", encoding="utf-8") as f:
+        return json.load(f)
+    except Exception:
+      return {}
+  return {}
+
+
+def veri_kaydet():
+  try:
+    with open(DB_FILE, "w", encoding="utf-8") as f:
+      json.dump(KULLANICILAR, f, ensure_ascii=False, indent=4)
+  except Exception:
+    pass
+
+
+KULLANICILAR = veri_yukle()
 
 
 def stok_oku():
@@ -123,11 +146,12 @@ def get_ana_menu_keyboard(stok_adet, user_data=None):
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+  user_id_str = str(update.effective_user.id)
   user_id = update.effective_user.id
   args = context.args
 
-  if user_id not in KULLANICILAR:
-    KULLANICILAR[user_id] = {
+  if user_id_str not in KULLANICILAR:
+    KULLANICILAR[user_id_str] = {
         "carpipuan": 0.0,
         "son_gunluk": 0,
         "davet_edildi": False,
@@ -140,19 +164,20 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     }
     if args and args[0].startswith("ref_"):
       try:
-        ref_id = int(args[0].split("_")[1])
-        if ref_id != user_id and ref_id in KULLANICILAR:
-          if not KULLANICILAR[user_id].get("davet_edildi", False):
-            KULLANICILAR[user_id]["davet_edildi"] = True
-            KULLANICILAR[ref_id]["carpipuan"] = round(
-                KULLANICILAR[ref_id]["carpipuan"] + 5.0, 1
+        ref_id_str = args[0].split("_")[1]
+        if ref_id_str != user_id_str and ref_id_str in KULLANICILAR:
+          if not KULLANICILAR[user_id_str].get("davet_edildi", False):
+            KULLANICILAR[user_id_str]["davet_edildi"] = True
+            KULLANICILAR[ref_id_str]["carpipuan"] = round(
+                KULLANICILAR[ref_id_str]["carpipuan"] + 5.0, 1
             )
-            KULLANICILAR[ref_id]["davet_sayisi"] = (
-                KULLANICILAR[ref_id].get("davet_sayisi", 0) + 1
+            KULLANICILAR[ref_id_str]["davet_sayisi"] = (
+                KULLANICILAR[ref_id_str].get("davet_sayisi", 0) + 1
             )
+            veri_kaydet()
             try:
               await context.bot.send_message(
-                  chat_id=ref_id,
+                  chat_id=int(ref_id_str),
                   text=(
                       "🎉 Tebrikler reis! Davet ettiğin bir kullanıcı botu başlattı"
                       " ve hesabına **+5 carpipuan** eklendi! 🚀"
@@ -163,9 +188,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
               pass
       except Exception:
         pass
+    veri_kaydet()
 
   stok_adet = len(stok_oku())
-  user_data = KULLANICILAR[user_id]
+  user_data = KULLANICILAR[user_id_str]
 
   bot_info = await context.bot.get_me()
   context.bot_data["username"] = bot_info.username
@@ -182,10 +208,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
   query = update.callback_query
+  user_id_str = str(query.from_user.id)
   user_id = query.from_user.id
 
-  if user_id not in KULLANICILAR:
-    KULLANICILAR[user_id] = {
+  if user_id_str not in KULLANICILAR:
+    KULLANICILAR[user_id_str] = {
         "carpipuan": 0.0,
         "son_gunluk": 0,
         "davet_edildi": False,
@@ -196,7 +223,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "sifre_oyunu_kullanildi": False,
         "beklenen_sifre": None,
     }
-  user_data = KULLANICILAR[user_id]
+    veri_kaydet()
+
+  user_data = KULLANICILAR[user_id_str]
   stok_adet = len(stok_oku())
 
   if query.data == "bos_bilgi":
@@ -207,6 +236,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     if user_data["hesap_adet"] < max(1, stok_adet):
       user_data["hesap_adet"] += 1
+      veri_kaydet()
     try:
       await query.edit_message_reply_markup(
           reply_markup=get_ana_menu_keyboard(stok_adet, user_data)
@@ -218,6 +248,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     if user_data["hesap_adet"] > 1:
       user_data["hesap_adet"] -= 1
+      veri_kaydet()
     try:
       await query.edit_message_reply_markup(
           reply_markup=get_ana_menu_keyboard(stok_adet, user_data)
@@ -229,6 +260,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     if user_data["yildiz_hesap_adet"] < max(1, stok_adet):
       user_data["yildiz_hesap_adet"] += 1
+      veri_kaydet()
     try:
       await query.edit_message_reply_markup(
           reply_markup=get_ana_menu_keyboard(stok_adet, user_data)
@@ -240,6 +272,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     if user_data["yildiz_hesap_adet"] > 1:
       user_data["yildiz_hesap_adet"] -= 1
+      veri_kaydet()
     try:
       await query.edit_message_reply_markup(
           reply_markup=get_ana_menu_keyboard(stok_adet, user_data)
@@ -266,6 +299,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if verilenler:
       await query.answer()
       user_data["carpipuan"] = round(user_data["carpipuan"] - gerekli_puan, 1)
+      veri_kaydet()
       hesaplar_metni = "\n".join([f"`{h}`" for h in verilenler])
       keyboard = [[InlineKeyboardButton("🔙 Ana Menü", callback_data="ana_menu")]]
       try:
@@ -295,6 +329,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
       return
 
     user_data["sifre_oyunu_kullanildi"] = True
+    veri_kaydet()
     try:
       await query.edit_message_reply_markup(
           reply_markup=get_ana_menu_keyboard(stok_adet, user_data)
@@ -321,6 +356,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
       user_data["promo_alindi"] = True
       user_data["carpipuan"] = round(user_data["carpipuan"] + kazanilan_odul, 1)
+      veri_kaydet()
 
       keyboard = [[InlineKeyboardButton("🔙 Ana Menü", callback_data="ana_menu")]]
       await query.edit_message_text(
@@ -429,6 +465,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_data["son_gunluk"] = simdi
     kazanilan = round(random.uniform(0.3, 2.0), 1)
     user_data["carpipuan"] = round(user_data["carpipuan"] + kazanilan, 1)
+    veri_kaydet()
 
     keyboard = [[InlineKeyboardButton("🔙 Ana Menü", callback_data="ana_menu")]]
     await query.edit_message_text(
@@ -510,10 +547,11 @@ async def successful_payment_callback(
 ):
   payment = update.message.successful_payment
   payload = payment.invoice_payload
+  user_id_str = str(update.effective_user.id)
   user_id = update.effective_user.id
 
-  if user_id not in KULLANICILAR:
-    KULLANICILAR[user_id] = {
+  if user_id_str not in KULLANICILAR:
+    KULLANICILAR[user_id_str] = {
         "carpipuan": 0.0,
         "son_gunluk": 0,
         "davet_edildi": False,
@@ -524,7 +562,7 @@ async def successful_payment_callback(
         "sifre_oyunu_kullanildi": True,
         "beklenen_sifre": None,
     }
-  user_data = KULLANICILAR[user_id]
+  user_data = KULLANICILAR[user_id_str]
   stok_adet = len(stok_oku())
 
   if payload.startswith("hesap_coklu_"):
@@ -549,6 +587,7 @@ async def successful_payment_callback(
     yuklenen_puan = int(parcalar[3])
 
     user_data["carpipuan"] = round(user_data["carpipuan"] + yuklenen_puan, 1)
+    veri_kaydet()
     await update.message.reply_text(
         f"⭐ **Carpipuan Başarıyla Yüklendi!**\n\n✨ Hesabına **+{yuklenen_puan}"
         f" Puan** eklendi! 🚀\n💰 Güncel Puanın: +{user_data['carpipuan']}",
@@ -558,6 +597,7 @@ async def successful_payment_callback(
   elif payload == "sifre_oyunu_3_yildiz":
     gizli_sifre = "".join(random.choices(string.digits, k=6))
     user_data["beklenen_sifre"] = gizli_sifre
+    veri_kaydet()
 
     await update.message.reply_text(
         "🔐 **Ödeme Onaylandı! Şifre Çözme Başladı**\n\n"
@@ -568,49 +608,20 @@ async def successful_payment_callback(
 
 
 async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-  user_id = update.effective_user.id
+  user_id_str = str(update.effective_user.id)
   text = update.message.text.strip()
 
-  if user_id in KULLANICILAR:
-    user_data = KULLANICILAR[user_id]
+  if user_id_str in KULLANICILAR:
+    user_data = KULLANICILAR[user_id_str]
     if user_data.get("beklenen_sifre") and text == user_data["beklenen_sifre"]:
       kazanilan_odul = random.choice([10, 30, 50, 100])
       user_data["carpipuan"] = round(
           user_data["carpipuan"] + kazanilan_odul, 1
       )
       user_data["beklenen_sifre"] = None
+      veri_kaydet()
 
       await update.message.reply_text(
           f"🎉 **Tebrikler Şifreyi Doğru Çözdün!**\n\n"
           f"✨ Büyük Ödül Hesabına Eklendi: **+{kazanilan_odul} Puan** 🚀\n"
-          f"💰 Güncel Puanın: +{user_data['carpipuan']}",
-          parse_mode="Markdown",
-      )
-
-
-def main():
-  BOT_TOKEN = "8962445060:AAEatnjtKUW66d--dFVdjgGnRqLMN_P7o44"
-  application = ApplicationBuilder().token(BOT_TOKEN).build()
-
-  application.add_handler(CommandHandler("start", start))
-  application.add_handler(CallbackQueryHandler(button_handler))
-  application.add_handler(PreCheckoutQueryHandler(pre_checkout_callback))
-  application.add_handler(
-      MessageHandler(
-          filters.SUCCESSFUL_PAYMENT, successful_payment_callback
-      )
-  )
-  application.add_handler(
-      MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler)
-  )
-
-  print("Bot Sorunsuz Başlatılıyor...")
-  application.run_polling()
-
-
-if __name__ == "__main__":
-  t = threading.Thread(target=run_web)
-  t.daemon = True
-  t.start()
-  main()
-        
+          f"💰 Güncel Puanın:
