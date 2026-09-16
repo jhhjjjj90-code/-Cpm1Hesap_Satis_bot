@@ -21,6 +21,9 @@ app = Flask(__name__)
 # Senin Telegram ID'n
 ADMIN_IDS = [8520025523]
 
+# Botunun kullanıcı adını buraya tırnak içinde yaz (örn: "CpmHesapBotun")
+BOT_USERNAME = "CpmHesapBot"
+
 
 @app.route("/")
 def home():
@@ -250,9 +253,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
   stok_adet = len(stok_oku())
   user_data = KULLANICILAR[user_id_str]
-
-  bot_info = await context.bot.get_me()
-  context.bot_data["username"] = bot_info.username
 
   await update.message.reply_text(
       "🚀 CPM1 Hesap Mağazasına & Otomasyon İmparatorluğuna Hoş Geldin!\n\n📦"
@@ -653,4 +653,4 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
   elif query.data == "davet":
     await query.answer()
-    bot_username = context.bot_data.get("username"
+    davet_linki = "https://t.me/" + BO
