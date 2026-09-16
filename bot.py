@@ -96,10 +96,20 @@ def get_ana_menu_keyboard(stok_adet, user_data=None):
       ],
       [
           InlineKeyboardButton(
-              "🎁 Promosyon Kodu Gir (0.3 - 5 Puan)",
-              callback_data="promo_gir_menu",
+              "🔐 Şifreyi Çöz & Ödülü Kap (3 Yıldız)",
+              callback_data="sifre_oyunu_baslat",
           )
       ],
+  ]
+
+  if user_data and not user_data.get("promo_alindi", False):
+    keyboard.append([
+        InlineKeyboardButton(
+            "🎁 Bana Özel Promo Kodu Üret", callback_data="ozel_promo_uret"
+        )
+    ])
+
+  keyboard.extend([
       [
           InlineKeyboardButton(
               "🎁 Günlük Ödül Al (0.3 - 2 Puan)", callback_data="gunluk_odul"
@@ -117,7 +127,8 @@ def get_ana_menu_keyboard(stok_adet, user_data=None):
           )
       ],
       [InlineKeyboardButton("👤 Profilim & Bilgilerim", callback_data="profil")],
-  ]
+  ])
+
   return InlineKeyboardMarkup(keyboard)
 
 
@@ -129,10 +140,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "carpipuan": 0.0,
         "son_gunluk": 0,
         "davet_edildi": False,
-        "hediye_kodu": None,
-        "kod_tuketildi": False,
         "hesap_adet": 1,
         "yildiz_hesap_adet": 1,
+        "promo_alindi": False,
+        "aktif_promo": None,
     }
 
   stok_adet = len(stok_oku())
@@ -159,6 +170,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "son_gunluk": 0,
         "hesap_adet": 1,
         "yildiz_hesap_adet": 1,
+        "promo_alindi": False,
+        "aktif_promo": None,
     }
   user_data = KULLANICILAR[user_id]
   stok_adet = len(stok_oku())
@@ -232,6 +245,45 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
           f" +{user_data['carpipuan']}",
           reply_markup=InlineKeyboardMarkup(keyboard),
           parse_mode="Markdown",
+      )
+
+  elif query.data == "sifre_oyunu_baslat":
+    # 3 Yıldız ile şifre çözme oyunu faturası oluştur
+    await context.bot.send_invoice(
+        chat_id=user_id,
+        title="🔐 6 Haneli Şifre Çözme Oyunu",
+        description="3 Yıldız öde, kişiye özel şifreyi çöz ve 10-100 Puan kazan!",
+        payload="sifre_oyunu_3_yildiz",
+        currency="XTR",
+        prices=[LabeledPrice("Şifre Çözme Hakkı", 3)],
+    )
+
+  elif query.data == "ozel_promo_uret":
+    if not user_data["promo_alindi"]:
+      rastgele_kod = (
+          "CPM-"
+          + "".join(
+              random.choices(string.ascii_uppercase + string.digits, k=6)
+          )
+      )
+      kazanilan_odul = round(random.uniform(1.0, 5.0), 1)
+
+      user_data["promo_alindi"] = True
+      user_data["carpipuan"] = round(user_data["carpipuan"] + kazanilan_odul, 1)
+
+      keyboard = [
+          [InlineKeyboardButton("🔙 Ana Menü", callback_data="ana_menu")]
+      ]
+      await query.edit_message_text(
+          f"🎁 Sana Özel Promo Kodu Üretildi!\n\n🔑 Kodun: `{rastgele_kod}`\n✨"
+          f" Hediyen Hesaba Eklendi: **+{kazanilan_odul} Puan**\n💰 Toplam"
+          f" Puanın: +{user_data['carpipuan']}",
+          reply_markup=InlineKeyboardMarkup(keyboard),
+          parse_mode="Markdown",
+      )
+    else:
+      await query.answer(
+          "❌ Sen bu promosyon hakkını zaten kullandın reis!", show_alert=True
       )
 
   elif query.data == "yildiz_coklu_hesap_al":
@@ -402,6 +454,7 @@ async def successful_payment_callback(
         "son_gunluk": 0,
         "hesap_adet": 1,
         "yildiz_hesap_adet": 1,
+        "promo_alindi": False,
     }
   user_data = KULLANICILAR[user_id]
   stok_adet = len(stok_oku())
@@ -431,6 +484,24 @@ async def successful_payment_callback(
     await update.message.reply_text(
         f"⭐ **Carpipuan Başarıyla Yüklendi!**\n\n✨ Hesabına **+{yuklenen_puan}"
         f" Puan** eklendi! 🚀\n💰 Güncel Puanın: +{user_data['carpipuan']}",
+        parse_mode="Markdown",
+    )
+
+  elif payload == "sifre_oyunu_3_yildiz":
+    # 6 haneli kullanıcıya özel her seferinde yenilenen şifre/kod üretimi
+    gizli_sifre = "".join(random.choices(string.digits, k=6))
+    kazanilan_odul = random.choice([10, 30, 50, 100])
+
+    user_data["carpipuan"] = round(
+        user_data["carpipuan"] + kazanilan_odul, 1
+    )
+
+    await update.message.reply_text(
+        f"🔐 **Şifre Başarıyla Çözüldü!**\n\n"
+        f"👤 Size Özel Üretilen Şifre: `{gizli_sifre}`\n"
+        f"🎉 Şifreyi başarıyla çözdün ve sisteme onaylattın!\n\n"
+        f"✨ Büyük Ödül Hesabına Eklendi: **+{kazanilan_odul} Puan** 🚀\n"
+        f"💰 Güncel Puanın: +{user_data['carpipuan']}",
         parse_mode="Markdown",
     )
 
