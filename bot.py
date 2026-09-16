@@ -123,35 +123,37 @@ def get_ana_menu_keyboard(stok_adet, user_data=None):
           InlineKeyboardButton(btn_text_1, callback_data="bos_bilgi"),
           InlineKeyboardButton("➕", callback_data="h_art"),
       ],
-      [
-          InlineKeyboardButton(btn_text_2, callback_data="hp_al")
-      ],
+      [InlineKeyboardButton(btn_text_2, callback_data="hp_al")],
       [
           InlineKeyboardButton("➖", callback_data="y_az"),
           InlineKeyboardButton(btn_text_3, callback_data="bos_bilgi"),
           InlineKeyboardButton("➕", callback_data="y_art"),
       ],
+      [InlineKeyboardButton(btn_text_4, callback_data="y_al")],
       [
-          InlineKeyboardButton(btn_text_4, callback_data="y_al")
+          InlineKeyboardButton(
+              "⭐ Yıldız ile Puan Al (Dengeli Paketler)",
+              callback_data="puan_menu",
+          )
       ],
       [
-          InlineKeyboardButton("⭐ Yıldız ile Puan Al (Dengeli Paketler)", callback_data="puan_menu")
+          InlineKeyboardButton(
+              "🔐 Şifreyi Çöz & Ödülü Kap (3 Yıldız)",
+              callback_data="sifre_baslat",
+          )
       ],
       [
-          InlineKeyboardButton("🔐 Şifreyi Çöz & Ödülü Kap (3 Yıldız)", callback_data="sifre_baslat")
+          InlineKeyboardButton(
+              "🎁 Günlük Ödül Al (0.3 - 2 Puan)", callback_data="gunluk"
+          )
       ],
+      [InlineKeyboardButton("🏆 En İyiler (Liderlik)", callback_data="liderlik")],
       [
-          InlineKeyboardButton("🎁 Günlük Ödül Al (0.3 - 2 Puan)", callback_data="gunluk")
+          InlineKeyboardButton(
+              "👥 Arkadaşını Davet Et (+5 carpipuan)", callback_data="davet"
+          )
       ],
-      [
-          InlineKeyboardButton("🏆 En İyiler (Liderlik)", callback_data="liderlik")
-      ],
-      [
-          InlineKeyboardButton("👥 Arkadaşını Davet Et (+5 carpipuan)", callback_data="davet")
-      ],
-      [
-          InlineKeyboardButton("👤 Profilim & Bilgilerim", callback_data="profil")
-      ],
+      [InlineKeyboardButton("👤 Profilim & Bilgilerim", callback_data="profil")],
   ]
 
   return InlineKeyboardMarkup(keyboard)
@@ -196,7 +198,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             try:
               await context.bot.send_message(
                   chat_id=int(ref_id_str),
-                  text="🎉 Tebrikler reis! Davet ettiğin kullanıcı botu başlattı ve hesabına **+5 carpipuan** eklendi! 🚀",
+                  text=(
+                      "🎉 Tebrikler reis! Davet ettiğin kullanıcı botu başlattı"
+                      " ve hesabına **+5 carpipuan** eklendi! 🚀"
+                  ),
                   parse_mode="Markdown",
               )
             except Exception:
@@ -321,7 +326,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
   elif query.data == "y_art":
     await query.answer()
-    if user_data["yildiz_hesap_adet"] < max(1, stok_adet if stok_adet > 0 else 1):
+    if user_data["yildiz_hesap_adet"] < max(
+        1, stok_adet if stok_adet > 0 else 1
+    ):
       user_data["yildiz_hesap_adet"] += 1
       veri_kaydet()
     try:
@@ -349,14 +356,18 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     gerekli_puan = get_dynamic_price(int(base_puan))
 
     if user_data["carpipuan"] < gerekli_puan:
-      await query.answer(f"❌ Yetersiz puan! Lazım: {gerekli_puan}", show_alert=True)
+      await query.answer(
+          f"❌ Yetersiz puan! Lazım: {gerekli_puan}", show_alert=True
+      )
       return
 
     if stok_adet < adet:
       if user_id_str not in DB_DATA["waitlist"]:
         DB_DATA["waitlist"].append(user_id_str)
         veri_kaydet()
-      await query.answer("⚠️ Stok kalmadı, bekleme listesine eklendin.", show_alert=True)
+      await query.answer(
+          "⚠️ Stok kalmadı, bekleme listesine eklendin.", show_alert=True
+      )
       return
 
     verilenler = stok_dusur_ve_ver(adet)
@@ -431,8 +442,16 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     keyboard = [
         [InlineKeyboardButton("⭐ 50 Yıldız ➔ 50 Puan", callback_data="p_yildiz_50")],
-        [InlineKeyboardButton("⭐ 100 Yıldız ➔ 120 Puan", callback_data="p_yildiz_100")],
-        [InlineKeyboardButton("⭐ 500 Yıldız ➔ 700 Puan", callback_data="p_yildiz_500")],
+        [
+            InlineKeyboardButton(
+                "⭐ 100 Yıldız ➔ 120 Puan", callback_data="p_yildiz_100"
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                "⭐ 500 Yıldız ➔ 700 Puan", callback_data="p_yildiz_500"
+            )
+        ],
         [InlineKeyboardButton("🔙 Menü", callback_data="ana_menu")],
     ]
     await query.edit_message_reply_markup(
@@ -607,12 +626,17 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return
   text = update.message.text.strip()
 
-  if user_id in ADMIN_IDS and context.user_data.get("beklenen_admin_islem") == "duyuru":
+  if (
+      user_id in ADMIN_IDS
+      and context.user_data.get("beklenen_admin_islem") == "duyuru"
+  ):
     context.user_data["beklenen_admin_islem"] = None
     for uid in KULLANICILAR.keys():
       try:
         await context.bot.send_message(
-            chat_id=int(uid), text=f"📢 **DUYURU:**\n\n{text}", parse_mode="Markdown"
+            chat_id=int(uid),
+            text=f"📢 **DUYURU:**\n\n{text}",
+            parse_mode="Markdown",
         )
       except Exception:
         pass
@@ -622,13 +646,4 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
   if user_id_str in KULLANICILAR:
     user_data = KULLANICILAR[user_id_str]
     if user_data.get("beklenen_sifre") and text == user_data["beklenen_sifre"]:
-      kazanilan_odul = random.choice([10, 30, 50, 100])
-      user_data["carpipuan"] = round(
-          user_data["carpipuan"] + kazanilan_odul, 1
-      )
-      user_data["beklenen_sifre"] = None
-      veri_kaydet()
-
-      mesaj = f"🎉 Tebrikler! Ödül Eklendi: **+{kazanilan_odul} Puan**"
-      await update.message.reply_text(
-      
+        
